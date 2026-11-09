@@ -27,7 +27,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "auth_rate_limits": {
+            "atendimentos": {
+                  Row: {
+                    "categoria": Database["public"]['Enums']["categoria_atendimento"],"created_at": string,"created_by": string | null,"data_conclusao": string | null,"data_fechamento": string | null,"data_pagamento": string | null,"data_primeiro_contato": string,"descricao": string | null,"id": string,"numero": number,"observacoes": string | null,"paciente_id": string,"pagamento_detalhe": string | null,"pagamento_forma": Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_status": Database["public"]['Enums']["status_pagamento"],"prazo_entrega": string | null,"status": Database["public"]['Enums']["status_atendimento"],"updated_at": string,"updated_by": string | null,"valor": number,"valor_pago": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "categoria"?: Database["public"]['Enums']["categoria_atendimento"],"created_at"?: string,"created_by"?: string | null,"data_conclusao"?: string | null,"data_fechamento"?: string | null,"data_pagamento"?: string | null,"data_primeiro_contato"?: string,"descricao"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id": string,"pagamento_detalhe"?: string | null,"pagamento_forma"?: Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_status"?: Database["public"]['Enums']["status_pagamento"],"prazo_entrega"?: string | null,"status"?: Database["public"]['Enums']["status_atendimento"],"updated_at"?: string,"updated_by"?: string | null,"valor"?: number,"valor_pago"?: number
+                  }
+                  Update: {
+                    "categoria"?: Database["public"]['Enums']["categoria_atendimento"],"created_at"?: string,"created_by"?: string | null,"data_conclusao"?: string | null,"data_fechamento"?: string | null,"data_pagamento"?: string | null,"data_primeiro_contato"?: string,"descricao"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id"?: string,"pagamento_detalhe"?: string | null,"pagamento_forma"?: Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_status"?: Database["public"]['Enums']["status_pagamento"],"prazo_entrega"?: string | null,"status"?: Database["public"]['Enums']["status_atendimento"],"updated_at"?: string,"updated_by"?: string | null,"valor"?: number,"valor_pago"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "atendimentos_paciente_id_fkey"
+      columns: ["paciente_id"]
+isOneToOne: false
+      referencedRelation: "pacientes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"auth_rate_limits": {
                   Row: {
                     "fails": number,"key": string,"locked_until": string | null,"window_start": string
                   }
@@ -40,6 +60,26 @@ export type Database = {
                   }
                   Relationships: [
                     
+                  ]
+                },"fichas_tecnicas": {
+                  Row: {
+                    "atendimento_id": string,"compensacao_lado": string | null,"compensacao_medida": string | null,"cor_forro": string | null,"cor_tira": string | null,"created_at": string,"created_by": string | null,"especificacoes": (string)[],"id": string,"lateralidade": Database["public"]['Enums']["lateralidade"] | null,"liner": string | null,"medidas_ml": string | null,"nome_na_ortese": boolean,"observacoes": string | null,"produto": string | null,"protese_lado": string | null,"protese_membro": string | null,"protese_nivel": string | null,"tamanho_calcado": string | null,"tamanho_pe": string | null,"tema": string | null,"tipo": Database["public"]['Enums']["tipo_ficha"],"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "atendimento_id": string,"compensacao_lado"?: string | null,"compensacao_medida"?: string | null,"cor_forro"?: string | null,"cor_tira"?: string | null,"created_at"?: string,"created_by"?: string | null,"especificacoes"?: (string)[],"id"?: string,"lateralidade"?: Database["public"]['Enums']["lateralidade"] | null,"liner"?: string | null,"medidas_ml"?: string | null,"nome_na_ortese"?: boolean,"observacoes"?: string | null,"produto"?: string | null,"protese_lado"?: string | null,"protese_membro"?: string | null,"protese_nivel"?: string | null,"tamanho_calcado"?: string | null,"tamanho_pe"?: string | null,"tema"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_ficha"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "atendimento_id"?: string,"compensacao_lado"?: string | null,"compensacao_medida"?: string | null,"cor_forro"?: string | null,"cor_tira"?: string | null,"created_at"?: string,"created_by"?: string | null,"especificacoes"?: (string)[],"id"?: string,"lateralidade"?: Database["public"]['Enums']["lateralidade"] | null,"liner"?: string | null,"medidas_ml"?: string | null,"nome_na_ortese"?: boolean,"observacoes"?: string | null,"produto"?: string | null,"protese_lado"?: string | null,"protese_membro"?: string | null,"protese_nivel"?: string | null,"tamanho_calcado"?: string | null,"tamanho_pe"?: string | null,"tema"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_ficha"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fichas_tecnicas_atendimento_id_fkey"
+      columns: ["atendimento_id"]
+isOneToOne: true
+      referencedRelation: "atendimentos"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"pacientes": {
                   Row: {
@@ -110,12 +150,15 @@ isOneToOne: false
 "mascarar_cpf":
 { Args: { "c": string }; Returns: string
                            },
+"salvar_atendimento":
+{ Args: { "p_dados": Json,"p_ficha"?: Json,"p_id": string }; Returns: string
+                           },
 "salvar_paciente":
 { Args: { "p_dados": Json,"p_id": string,"p_responsaveis"?: Json }; Returns: string
                            }
           }
           Enums: {
-            "origem_paciente": "clinica"|"particular"|"plano"
+            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -235,7 +278,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "origem_paciente": ["clinica", "particular", "plano"]
+            "categoria_atendimento": ["confeccao", "ajuste", "reparo", "manutencao"],"forma_pagamento": ["pix", "dinheiro", "cartao", "boleto", "convenio"],"lateralidade": ["bilateral", "unilateral_d", "unilateral_e"],"origem_paciente": ["clinica", "particular", "plano"],"status_atendimento": ["em_contato", "em_producao", "pronto", "entregue", "cancelado"],"status_pagamento": ["pendente", "parcial", "pago", "isento"],"tipo_ficha": ["ortese", "protese", "palmilha"]
           }
         }
 } as const
