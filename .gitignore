@@ -1,0 +1,42 @@
+# Dependências e build
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Segredos — NUNCA versionar
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Vercel e Supabase (estado local, contém IDs e tokens)
+.vercel/
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+
+# Testes e relatórios
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.lighthouseci/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor e SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.sw?
