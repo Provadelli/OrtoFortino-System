@@ -6,7 +6,8 @@ import { publicClient, toClientSession } from '../_lib/supabase.js'
 export const POST = handler(async (req) => {
   assertSameOrigin(req)
   const cookie = readRefreshCookie(req)
-  if (!cookie) return json({ error: 'Sem sessão.' }, 401)
+  // Sem cookie = visitante sem sessão: 204 (não é erro, não suja o console).
+  if (!cookie) return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } })
 
   const { data, error } = await publicClient().auth.refreshSession({ refresh_token: cookie.token })
   if (error || !data.session) {

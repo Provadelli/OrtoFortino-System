@@ -48,8 +48,12 @@ function accept(session: Session) {
 
 /** Troca o cookie httpOnly por um novo access token. Uma única requisição por vez. */
 export function refresh(): Promise<Session | null> {
-  inflight ??= post<Session>('refresh')
-    .then(accept)
+  // 204 = sem sessão (não é erro; evita poluir o console com 401).
+  inflight ??= post<Partial<Session>>('refresh')
+    .then((s) => {
+      if (!s.accessToken || !s.expiresAt || !s.user) throw new Error('sem sessão')
+      return accept(s as Session)
+    })
     .catch(() => {
       clearTimeout(refreshTimer)
       tokenStore.set(null)

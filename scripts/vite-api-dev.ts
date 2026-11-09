@@ -26,8 +26,45 @@ export function apiDevServer(): Plugin {
   }
 }
 
+/**
+ * MODO DEMONSTRAÇÃO — só em `npm run dev` e só enquanto não houver chaves do Supabase.
+ * Aceita qualquer e-mail com a senha "demonstracao2026" para visualizar o painel.
+ */
+const DEMO_PASSWORD = 'demonstracao2026'
+const DEMO_COOKIE = 'of_demo=1; Path=/; HttpOnly; SameSite=Strict'
+function demoSession() {
+  return {
+    accessToken: 'demo',
+    expiresAt: Math.floor(Date.now() / 1000) + 900,
+    user: { id: 'demo', email: 'demo@ortofortino.com.br', nome: 'Equipe Orto Fortino' },
+  }
+}
+async function handleDemo(req: IncomingMessage, res: ServerResponse, route: string) {
+  const send = (status: number, body: unknown, cookie?: string) => {
+    res.statusCode = status
+    res.setHeader('Content-Type', 'application/json')
+    if (cookie) res.setHeader('Set-Cookie', cookie)
+    res.end(JSON.stringify(body))
+  }
+  const hasDemo = /(?:^|;\s*)of_demo=1/.test(req.headers.cookie ?? '')
+  if (route === 'auth/refresh') return hasDemo ? send(200, demoSession()) : send(204, {})
+  if (route === 'auth/logout') return send(200, { ok: true }, `${DEMO_COOKIE}; Max-Age=0`)
+  if (route === 'auth/forgot') return send(200, { ok: true })
+  if (route === 'auth/login') {
+    let body = ''
+    for await (const c of req) body += c
+    const { password } = JSON.parse(body || '{}') as { password?: string }
+    if (password === DEMO_PASSWORD) return send(200, demoSession(), DEMO_COOKIE)
+    return send(401, { error: 'E-mail ou senha incorretos.' })
+  }
+  return send(404, {})
+}
+
 async function handle(server: ViteDevServer, req: IncomingMessage, res: ServerResponse) {
   const { pathname } = new URL(req.url ?? '/', 'http://localhost')
+  if (!process.env.SUPABASE_URL) {
+    return handleDemo(req, res, pathname.replace(/^\/api\//, '').replace(/\/$/, ''))
+  }
   const route = pathname.replace(/^\/api\//, '').replace(/\/$/, '')
   if (!/^[a-z0-9/-]+$/.test(route) || route.split('/').some((s) => s.startsWith('_'))) {
     res.statusCode = 404

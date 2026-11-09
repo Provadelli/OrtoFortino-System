@@ -10,7 +10,7 @@ const session = {
 export async function mockAuth(page: Page, { loggedIn = false, password = 'senhaCorreta2026' } = {}) {
   let authed = loggedIn
   await page.route('**/api/auth/refresh', (r) =>
-    authed ? r.fulfill({ json: session }) : r.fulfill({ status: 401, json: { error: 'Sem sessão.' } }),
+    authed ? r.fulfill({ json: session }) : r.fulfill({ status: 204, body: '' }),
   )
   await page.route('**/api/auth/login', async (r) => {
     const body = r.request().postDataJSON() as { password: string }
