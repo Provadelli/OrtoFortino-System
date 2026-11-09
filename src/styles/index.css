@@ -113,6 +113,11 @@
   background: repeating-conic-gradient(from 0deg at 50% 50%, rgb(143 213 180 / 0.55) 0deg 0.5deg, transparent 0.5deg 6deg);
 }
 
+/* Seta dos <select> nativos */
+@utility select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2355636A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
 /* Entrada escalonada: defina --i no elemento (0, 1, 2…) */
 @utility stagger {
   animation-delay: calc(var(--i, 0) * 70ms);

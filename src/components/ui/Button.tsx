@@ -1,13 +1,14 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
-type Variant = 'primary' | 'outline' | 'ghost'
+type Variant = 'primary' | 'outline' | 'ghost' | 'danger'
 type Size = 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-primary text-white hover:bg-primary-hover shadow-[0_1px_0_rgb(0_0_0/0.04)]',
   outline: 'border-[1.5px] border-primary bg-white text-primary-ink hover:bg-prod-bg',
   ghost: 'bg-transparent text-primary-ink hover:bg-surface-hover',
+  danger: 'bg-late-fg text-white hover:bg-link-pink-hover',
 }
 const sizes: Record<Size, string> = {
   md: 'h-12 px-[18px] text-[15px]',

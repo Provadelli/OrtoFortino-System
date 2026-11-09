@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router'
 import { refresh } from '@/features/auth/auth-client'
 import { tokenStore } from '@/features/auth/token-store'
 import { useSession } from '@/features/auth/useSession'
-import { PageSkeleton } from '@/components/layout/AppShell'
+import { PageSkeleton } from '@/components/layout/PageSkeleton'
 
 /**
  * Protege as rotas internas. A sessão vem do cookie httpOnly via /api/auth/refresh;
