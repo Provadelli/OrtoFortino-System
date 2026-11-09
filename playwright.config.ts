@@ -9,5 +9,5 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: { command: 'npm run build && npm run preview', url: 'http://localhost:4173/login', reuseExistingServer: true, timeout: 120_000 },
+  webServer: { command: 'npm run build && npm run preview', url: 'http://localhost:4173/login', reuseExistingServer: false, timeout: 120_000 },
 })
