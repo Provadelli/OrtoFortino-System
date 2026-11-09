@@ -40,7 +40,7 @@ export function Sidebar() {
     try {
       await logout()
     } finally {
-      navigate('/login', { replace: true })
+      await navigate('/login', { replace: true })
     }
   }
 

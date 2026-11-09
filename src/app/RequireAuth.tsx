@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { refresh } from '@/features/auth/auth-client'
+import { tokenStore } from '@/features/auth/token-store'
 import { useSession } from '@/features/auth/useSession'
 import { PageSkeleton } from '@/components/layout/AppShell'
 
@@ -12,16 +13,15 @@ export function RequireAuth() {
   const session = useSession()
   const location = useLocation()
   const [checked, setChecked] = useState(session !== null)
-  const [hadSession] = useState(session !== null)
 
   useEffect(() => {
-    if (session) return
+    if (session || checked) return
     let alive = true
     void refresh().finally(() => alive && setChecked(true))
     return () => {
       alive = false
     }
-  }, [session])
+  }, [session, checked])
 
   if (session) return <Outlet />
   if (!checked)
@@ -34,7 +34,9 @@ export function RequireAuth() {
       </main>
     )
 
+  const reason = tokenStore.getEndReason()
+  if (reason === 'logout') return <Navigate to="/login" replace />
   const next = encodeURIComponent(location.pathname + location.search)
-  const motivo = hadSession ? '&motivo=sessao-expirada' : ''
+  const motivo = reason === 'expired' ? '&motivo=sessao-expirada' : ''
   return <Navigate to={`/login?next=${next}${motivo}`} replace />
 }

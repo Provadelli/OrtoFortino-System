@@ -65,13 +65,11 @@ export async function login(email: string, password: string, remember: boolean) 
   return accept(await post<Session>('login', { email, password, remember }))
 }
 
+/** Revoga a sessão no servidor e limpa a memória. */
 export async function logout() {
   clearTimeout(refreshTimer)
-  try {
-    await post('logout')
-  } finally {
-    tokenStore.set(null)
-  }
+  await post('logout').catch(() => undefined)
+  tokenStore.set(null, 'logout')
 }
 
 export function forgotPassword(email: string) {
