@@ -80,8 +80,10 @@ export function forgotPassword(email: string) {
   return post<{ ok: true }>('forgot', { email })
 }
 
-export async function resetPassword(tokenHash: string, password: string) {
-  return accept(await post<Session>('reset', { tokenHash, password }))
+export type RecoveryProof = { tokenHash: string } | { accessToken: string; refreshToken: string }
+
+export async function resetPassword(proof: RecoveryProof, password: string) {
+  return accept(await post<Session>('reset', { ...proof, password }))
 }
 
 // Ao voltar para a aba depois de muito tempo (timer congelado), renova se preciso.

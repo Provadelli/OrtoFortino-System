@@ -249,10 +249,12 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Recuperação de senha: link com token_hash para o BFF (/api/auth/reset)
-[auth.email.template.recovery]
-subject = "Orto Fortino — criar nova senha"
-content_path = "./supabase/templates/recovery.html"
+# Recuperação de senha com template da marca (link com token_hash para o BFF).
+# O plano gratuito só permite templates com SMTP próprio. Ao configurar [auth.email.smtp],
+# descomente o bloco abaixo. Até lá, o link padrão do Supabase também é suportado pelo BFF.
+# [auth.email.template.recovery]
+# subject = "Orto Fortino — criar nova senha"
+# content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

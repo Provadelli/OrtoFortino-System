@@ -5,15 +5,30 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/Button'
 import { PasswordField } from '@/components/ui/Field'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { resetPassword } from './auth-client'
+import { resetPassword, type RecoveryProof } from './auth-client'
 import { AuthLayout, FormAlert } from './AuthLayout'
 import { resetSchema, type ResetInput } from './schemas'
+
+/**
+ * Lê a prova de recuperação uma única vez e apaga o fragmento # da barra de endereço,
+ * para os tokens não ficarem no histórico do navegador.
+ */
+function readProof(params: URLSearchParams): RecoveryProof | null {
+  const tokenHash = params.get('token_hash')
+  if (tokenHash) return { tokenHash }
+  const hash = new URLSearchParams(window.location.hash.slice(1))
+  const accessToken = hash.get('access_token')
+  const refreshToken = hash.get('refresh_token')
+  if (window.location.hash) window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  if (hash.get('type') === 'recovery' && accessToken && refreshToken) return { accessToken, refreshToken }
+  return null
+}
 
 export default function ResetPasswordPage() {
   usePageTitle('Nova senha')
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const tokenHash = params.get('token_hash') ?? ''
+  const [proof] = useState(() => readProof(params))
   const [error, setError] = useState<string | null>(null)
   const {
     register,
@@ -24,7 +39,8 @@ export default function ResetPasswordPage() {
   const onSubmit = handleSubmit(async ({ password }) => {
     setError(null)
     try {
-      await resetPassword(tokenHash, password)
+      if (!proof) throw new Error('sem prova')
+      await resetPassword(proof, password)
       navigate('/painel', { replace: true })
     } catch {
       setError('Este link expirou ou já foi usado. Peça um novo link de recuperação.')
@@ -41,7 +57,7 @@ export default function ResetPasswordPage() {
           <p className="m-0 text-base text-muted">Escolha uma senha forte, que você não usa em outros sites.</p>
         </div>
 
-        {!tokenHash ? (
+        {!proof ? (
           <>
             <FormAlert>Link inválido. Abra o link que enviamos por e-mail ou peça um novo.</FormAlert>
             <Link to="/esqueci-senha" className="text-[15px] font-semibold text-primary-ink">

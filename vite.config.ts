@@ -1,4 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { parseEnv } from 'node:util'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
@@ -29,9 +31,18 @@ function preloadCriticalFonts(): Plugin {
   }
 }
 
+function readEnvFiles(mode: string) {
+  const out: Record<string, string> = {}
+  for (const file of ['.env', '.env.local', `.env.${mode}`, `.env.${mode}.local`]) {
+    if (existsSync(file)) Object.assign(out, parseEnv(readFileSync(file, 'utf8')))
+  }
+  return out
+}
+
 export default defineConfig(({ mode }) => {
   // Variáveis sem prefixo VITE_ ficam só no processo do servidor (BFF local).
-  Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
+  // Os arquivos .env* têm prioridade, para uma chave trocada valer já no reinício automático.
+  Object.assign(process.env, loadEnv(mode, process.cwd(), ''), readEnvFiles(mode))
 
   return {
     plugins: [react(), tailwindcss(), preloadCriticalFonts(), apiDevServer()],
