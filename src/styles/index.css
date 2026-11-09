@@ -1,0 +1,139 @@
+@import './fonts.css';
+@import 'tailwindcss';
+
+/* ───────────── Tema Orto Fortino (fonte: canvas de design) ───────────── */
+@theme {
+  --font-sans: 'Inter', 'Inter Fallback', system-ui, sans-serif;
+  --font-display: 'Poppins', 'Poppins Fallback', system-ui, sans-serif;
+
+  /* Marca */
+  --color-brand-yellow: #ffd400;
+  --color-brand-orange: #f7941d;
+  --color-brand-pink: #e6007e;
+  --color-brand-mint: #8fd5b4;
+  --color-mint-wash: #f3fbf7;
+
+  /* Ação (contraste AA sobre branco) */
+  --color-primary: #1f7a5c;
+  --color-primary-hover: #17604a;
+  --color-primary-ink: #17604a;
+  --color-link-pink: #a3005a;
+  --color-link-pink-hover: #7a0044;
+
+  /* Texto e superfícies */
+  --color-ink: #1f2a2e;
+  --color-ink-soft: #3b4a50;
+  --color-muted: #55636a;
+  --color-surface: #f5f8f6;
+  --color-surface-hover: #f1f6f3;
+  --color-track: #f0f4f2;
+  --color-line: #e3ece7;
+  --color-line-soft: #eef3f0;
+  --color-field: #cfdfd7;
+  --color-field-soft: #d5e3dc;
+
+  /* Status (fundo / texto) */
+  --color-late-bg: #fde0ef;
+  --color-late-fg: #a3005a;
+  --color-today-bg: #ffe9d1;
+  --color-today-fg: #8a4500;
+  --color-prod-bg: #e3f5ec;
+  --color-prod-fg: #17604a;
+  --color-ready-bg: #fff4b8;
+  --color-ready-fg: #6b5a00;
+  --color-draft-bg: #eef1f0;
+  --color-draft-fg: #46525a;
+
+  --radius-card: 18px;
+  --radius-field: 12px;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-rise: rise 520ms var(--ease-out-soft) both;
+  --animate-fade: fade 400ms ease-out both;
+  --animate-grow-x: grow-x 900ms var(--ease-out-soft) both;
+  --animate-spin-slow: spin 160s linear infinite;
+  --animate-shake: shake 360ms ease-in-out;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes grow-x {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+}
+
+/* ───────────── Base ───────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    margin: 0;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+
+  /* Foco visível consistente (WCAG 2.4.7 / 2.4.11) */
+  :focus-visible {
+    outline: 3px solid var(--color-brand-mint);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input:focus-visible {
+    outline-offset: 1px;
+    border-color: var(--color-primary);
+  }
+  ::placeholder { color: #6a777d; opacity: 1; }
+
+  ::selection { background: var(--color-prod-bg); color: var(--color-ink); }
+}
+
+/* Raios de sol do painel de login (o canvas usa repeating-conic-gradient) */
+@utility sunburst {
+  background: repeating-conic-gradient(from 0deg at 50% 50%, rgb(143 213 180 / 0.55) 0deg 0.5deg, transparent 0.5deg 6deg);
+}
+
+/* Entrada escalonada: defina --i no elemento (0, 1, 2…) */
+@utility stagger {
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* View Transitions entre rotas */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-out-soft);
+}
+
+/* Acessibilidade: respeita quem prefere menos movimento (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
