@@ -18,8 +18,8 @@ export function Logo({ variant = 'completa', className }: LogoProps) {
     <img
       src={completa ? logoCompleta : logoCompacta}
       alt={completa ? 'Orto Fortino — Órteses Funcionais' : 'Orto Fortino'}
-      width={1146}
-      height={completa ? 593 : 503}
+      width={completa ? 2355 : 2340}
+      height={completa ? 1221 : 1030}
       className={cn('block h-auto max-w-full select-none', className)}
       draggable={false}
     />
@@ -27,7 +27,7 @@ export function Logo({ variant = 'completa', className }: LogoProps) {
   if (variant !== 'responsiva') return img
   return (
     <picture>
-      <source media="(min-width: 1024px)" srcSet={logoCompleta} width={1146} height={593} />
+      <source media="(min-width: 1024px)" srcSet={logoCompleta} width={2355} height={1221} />
       {img}
     </picture>
   )
