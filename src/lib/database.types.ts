@@ -101,6 +101,64 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"orcamento_itens": {
+                  Row: {
+                    "descricao": string,"detalhe": string | null,"id": string,"orcamento_id": string,"ordem": number,"preco_unitario": number,"produto_id": string | null,"quantidade": number,"secao": string | null,"tipo": Database["public"]['Enums']["tipo_produto"],"total": number,"unidade": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "descricao": string,"detalhe"?: string | null,"id"?: string,"orcamento_id": string,"ordem": number,"preco_unitario": number,"produto_id"?: string | null,"quantidade": number,"secao"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_produto"],"total"?: never,"unidade"?: string
+                  }
+                  Update: {
+                    "descricao"?: string,"detalhe"?: string | null,"id"?: string,"orcamento_id"?: string,"ordem"?: number,"preco_unitario"?: number,"produto_id"?: string | null,"quantidade"?: number,"secao"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_produto"],"total"?: never,"unidade"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "orcamento_itens_orcamento_id_fkey"
+      columns: ["orcamento_id"]
+isOneToOne: false
+      referencedRelation: "orcamentos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orcamento_itens_produto_id_fkey"
+      columns: ["produto_id"]
+isOneToOne: false
+      referencedRelation: "produtos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"orcamentos": {
+                  Row: {
+                    "ano": number,"aprovado_em": string | null,"atendimento_id": string | null,"condicoes_pagamento": string | null,"created_at": string,"created_by": string | null,"data_emissao": string,"desconto": number,"desconto_tipo": Database["public"]['Enums']["tipo_desconto"],"desconto_valor": number,"enviado_em": string | null,"id": string,"numero": string,"observacoes": string | null,"paciente_id": string,"prazo_entrega": string | null,"sequencial": number,"status": Database["public"]['Enums']["status_orcamento"],"subtotal": number,"total": number,"updated_at": string,"updated_by": string | null,"validade": string,"versao": number,"versao_anterior_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ano": number,"aprovado_em"?: string | null,"atendimento_id"?: string | null,"condicoes_pagamento"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_emissao"?: string,"desconto"?: number,"desconto_tipo"?: Database["public"]['Enums']["tipo_desconto"],"desconto_valor"?: number,"enviado_em"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id": string,"prazo_entrega"?: string | null,"sequencial": number,"status"?: Database["public"]['Enums']["status_orcamento"],"subtotal"?: number,"total"?: number,"updated_at"?: string,"updated_by"?: string | null,"validade": string,"versao"?: number,"versao_anterior_id"?: string | null
+                  }
+                  Update: {
+                    "ano"?: number,"aprovado_em"?: string | null,"atendimento_id"?: string | null,"condicoes_pagamento"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_emissao"?: string,"desconto"?: number,"desconto_tipo"?: Database["public"]['Enums']["tipo_desconto"],"desconto_valor"?: number,"enviado_em"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id"?: string,"prazo_entrega"?: string | null,"sequencial"?: number,"status"?: Database["public"]['Enums']["status_orcamento"],"subtotal"?: number,"total"?: number,"updated_at"?: string,"updated_by"?: string | null,"validade"?: string,"versao"?: number,"versao_anterior_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "orcamentos_atendimento_id_fkey"
+      columns: ["atendimento_id"]
+isOneToOne: false
+      referencedRelation: "atendimentos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orcamentos_paciente_id_fkey"
+      columns: ["paciente_id"]
+isOneToOne: false
+      referencedRelation: "pacientes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orcamentos_versao_anterior_id_fkey"
+      columns: ["versao_anterior_id"]
+isOneToOne: false
+      referencedRelation: "orcamentos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"pacientes": {
                   Row: {
                     "cidade": string | null,"consentimento_lgpd_em": string,"consentimento_por": string | null,"cpf": string | null,"created_at": string,"created_by": string | null,"data_nascimento": string | null,"diagnostico": string | null,"endereco": string | null,"id": string,"medico": string | null,"nome": string,"nome_busca": string | null,"observacoes": string | null,"origem": Database["public"]['Enums']["origem_paciente"],"origem_nome": string | null,"telefone": string | null,"uf": string | null,"updated_at": string,"updated_by": string | null
@@ -181,11 +239,20 @@ isOneToOne: false
 "importar_produtos":
 { Args: { "p_itens": Json }; Returns: Json
                            },
+"aprovar_orcamento":
+{ Args: { "p_hoje": string,"p_id": string }; Returns: string
+                           },
 "is_staff":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "mascarar_cpf":
 { Args: { "c": string }; Returns: string
+                           },
+"mudar_status_orcamento":
+{ Args: { "p_id": string,"p_status": Database["public"]['Enums']["status_orcamento"] }; Returns: undefined
+                           },
+"nova_versao_orcamento":
+{ Args: { "p_hoje": string,"p_id": string }; Returns: string
                            },
 "painel_resumo":
 { Args: { "p_hoje": string }; Returns: Json
@@ -193,12 +260,15 @@ isOneToOne: false
 "salvar_atendimento":
 { Args: { "p_dados": Json,"p_ficha"?: Json,"p_id": string }; Returns: string
                            },
+"salvar_orcamento":
+{ Args: { "p_dados": Json,"p_id": string,"p_itens": Json }; Returns: string
+                           },
 "salvar_paciente":
 { Args: { "p_dados": Json,"p_id": string,"p_responsaveis"?: Json }; Returns: string
                            }
           }
           Enums: {
-            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha","tipo_produto": "base"|"adicional"
+            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha","tipo_produto": "base"|"adicional","status_orcamento": "rascunho"|"enviado"|"aprovado"|"recusado"|"substituido","tipo_desconto": "valor"|"percentual"
           }
           CompositeTypes: {
             [_ in never]: never
