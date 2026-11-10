@@ -184,8 +184,9 @@ function ExcluirPaciente({ id, nome }: { id: string; nome: string }) {
       navigate('/clientes', { replace: true, state: { notice: `Cadastro de ${nome} excluído.` } })
     } catch (err) {
       setErro(
-        isDbError(err) && err.code === '23503'
-          ? 'Este paciente tem atendimentos registrados. Exclua os atendimentos antes de excluir o cadastro.'
+        // 23503 (no action) ou 23001 (restrict): o paciente ainda é referenciado
+        isDbError(err) && (err.code === '23503' || err.code === '23001')
+          ? 'Este paciente tem atendimentos ou orçamentos registrados. Exclua-os antes de excluir o cadastro.'
           : 'Não foi possível excluir agora. Tente de novo.',
       )
     }

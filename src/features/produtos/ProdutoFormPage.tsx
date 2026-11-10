@@ -272,7 +272,7 @@ function Situacao({ produto, onNotice }: { produto: ProdutoDetalhe; onNotice: (m
       navigate('/tabela-de-precos', { replace: true, state: { notice: `“${produto.nome}” excluído da tabela.` } })
     } catch (err) {
       setErroExcluir(
-        isDbError(err) && err.code === '23503'
+        isDbError(err) && (err.code === '23503' || err.code === '23001')
           ? 'Este produto já foi usado em orçamentos e não pode ser excluído. Desative-o para tirá-lo da lista.'
           : 'Não foi possível excluir agora. Tente de novo.',
       )
