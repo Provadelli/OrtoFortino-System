@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 const YEAR = new Date().getFullYear()
 import { BrandStripe } from '@/components/brand/BrandStripe'
-import logo from '@/assets/logo-orto-fortino.png'
+import { Logo } from '@/components/brand/Logo'
 import { LockIcon } from '@/components/ui/icons'
 
 /** Tela dividida do canvas: marca à esquerda (menta + raios de sol), formulário à direita. */
@@ -15,8 +15,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       >
         <div aria-hidden="true" className="sunburst pointer-events-none absolute -inset-[60%] animate-spin-slow will-change-transform" />
         <div className="relative flex flex-col items-start animate-rise">
-          {/* Arte oficial enviada pela empresa (recortada do selo, fundo transparente). */}
-          <img src={logo} alt="Orto Fortino — Órteses Funcionais" width={116} height={60} className="h-auto w-[clamp(200px,22vw,280px)]" />
+          <Logo className="w-[clamp(240px,26vw,340px)]" />
           <p className="mt-10 mb-0 max-w-[380px] text-lg leading-normal text-[#2b4a3f]">
             Cadastro de pacientes, atendimentos e orçamentos em um só lugar.
           </p>

@@ -51,7 +51,7 @@ export function Sidebar() {
     >
       <div className="flex items-center justify-between gap-3 lg:flex-col lg:items-stretch lg:px-2">
         <div className="flex flex-col gap-3">
-          <Logo size="sm" />
+          <Logo variant="responsiva" className="w-[120px] lg:w-[200px]" />
           <BrandStripe className="hidden h-1 rounded lg:grid" />
         </div>
         <button
