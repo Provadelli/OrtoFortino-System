@@ -81,6 +81,26 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"historico_precos": {
+                  Row: {
+                    "alterado_em": string,"alterado_por": string | null,"id": string,"origem": string,"preco_anterior": number | null,"preco_novo": number,"produto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alterado_em"?: string,"alterado_por"?: string | null,"id"?: string,"origem"?: string,"preco_anterior"?: number | null,"preco_novo": number,"produto_id": string
+                  }
+                  Update: {
+                    "alterado_em"?: string,"alterado_por"?: string | null,"id"?: string,"origem"?: string,"preco_anterior"?: number | null,"preco_novo"?: number,"produto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "historico_precos_produto_id_fkey"
+      columns: ["produto_id"]
+isOneToOne: false
+      referencedRelation: "produtos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"pacientes": {
                   Row: {
                     "cidade": string | null,"consentimento_lgpd_em": string,"consentimento_por": string | null,"cpf": string | null,"created_at": string,"created_by": string | null,"data_nascimento": string | null,"diagnostico": string | null,"endereco": string | null,"id": string,"medico": string | null,"nome": string,"nome_busca": string | null,"observacoes": string | null,"origem": Database["public"]['Enums']["origem_paciente"],"origem_nome": string | null,"telefone": string | null,"uf": string | null,"updated_at": string,"updated_by": string | null
@@ -91,6 +111,20 @@ isOneToOne: true
                   }
                   Update: {
                     "cidade"?: string | null,"consentimento_lgpd_em"?: string,"consentimento_por"?: string | null,"cpf"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_nascimento"?: string | null,"diagnostico"?: string | null,"endereco"?: string | null,"id"?: string,"medico"?: string | null,"nome"?: string,"nome_busca"?: never,"observacoes"?: string | null,"origem"?: Database["public"]['Enums']["origem_paciente"],"origem_nome"?: string | null,"telefone"?: string | null,"uf"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"produtos": {
+                  Row: {
+                    "ativo": boolean,"categoria": string | null,"codigo": string | null,"created_at": string,"created_by": string | null,"descricao": string | null,"id": string,"nome": string,"nome_busca": string | null,"preco": number,"tipo": Database["public"]['Enums']["tipo_produto"],"unidade": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ativo"?: boolean,"categoria"?: string | null,"codigo"?: string | null,"created_at"?: string,"created_by"?: string | null,"descricao"?: string | null,"id"?: string,"nome": string,"nome_busca"?: never,"preco"?: number,"tipo"?: Database["public"]['Enums']["tipo_produto"],"unidade"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "ativo"?: boolean,"categoria"?: string | null,"codigo"?: string | null,"created_at"?: string,"created_by"?: string | null,"descricao"?: string | null,"id"?: string,"nome"?: string,"nome_busca"?: never,"preco"?: number,"tipo"?: Database["public"]['Enums']["tipo_produto"],"unidade"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     
@@ -144,6 +178,9 @@ isOneToOne: false
 "f_unaccent":
 { Args: { "t": string }; Returns: string
                            },
+"importar_produtos":
+{ Args: { "p_itens": Json }; Returns: Json
+                           },
 "is_staff":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
@@ -161,7 +198,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha"
+            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha","tipo_produto": "base"|"adicional"
           }
           CompositeTypes: {
             [_ in never]: never
