@@ -33,7 +33,6 @@ export const produtoSchema = z.object({
     }, 'Preço inválido. Use o formato 1.250,00.'),
   ),
   descricao: opcional(1000),
-  ativo: z.boolean(),
 })
 
 export type ProdutoForm = z.infer<typeof produtoSchema>
@@ -46,7 +45,6 @@ export const produtoVazio: ProdutoForm = {
   unidade: 'un',
   preco: '',
   descricao: '',
-  ativo: true,
 }
 
 /** Formulário → colunas da tabela produtos. */
@@ -60,6 +58,5 @@ export function toPayload(v: ProdutoForm) {
     unidade: v.unidade.trim(),
     preco: parseBRL(v.preco),
     descricao: vazio(v.descricao),
-    ativo: v.ativo,
   }
 }

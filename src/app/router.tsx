@@ -16,6 +16,9 @@ const PacienteFichaPage = lazy(() => import('@/features/pacientes/PacienteFichaP
 const AtendimentosPage = lazy(() => import('@/features/atendimentos/AtendimentosPage'))
 const AtendimentoFormPage = lazy(() => import('@/features/atendimentos/AtendimentoFormPage'))
 const AtendimentoPage = lazy(() => import('@/features/atendimentos/AtendimentoPage'))
+const ProdutosPage = lazy(() => import('@/features/produtos/ProdutosPage'))
+const ProdutoFormPage = lazy(() => import('@/features/produtos/ProdutoFormPage'))
+const ImportarProdutosPage = lazy(() => import('@/features/produtos/ImportarProdutosPage'))
 
 const clientes = [
   { path: 'clientes', element: <PacientesPage /> },
@@ -28,7 +31,14 @@ const clientes = [
   { path: 'atendimentos/:id/editar', element: <AtendimentoFormPage /> },
 ]
 
-const emBreve = ['orcamentos', 'tabela-de-precos', 'configuracoes'].map((path) => ({
+const precos = [
+  { path: 'tabela-de-precos', element: <ProdutosPage /> },
+  { path: 'tabela-de-precos/novo', element: <ProdutoFormPage /> },
+  { path: 'tabela-de-precos/importar', element: <ImportarProdutosPage /> },
+  { path: 'tabela-de-precos/:id', element: <ProdutoFormPage /> },
+]
+
+const emBreve = ['orcamentos', 'configuracoes'].map((path) => ({
   path: `${path}/*`,
   element: <EmBrevePage />,
 }))
@@ -42,7 +52,7 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <AppShell />,
-        children: [{ index: true, element: <Navigate to="/painel" replace /> }, { path: 'painel', element: <DashboardPage /> }, ...clientes, ...emBreve],
+        children: [{ index: true, element: <Navigate to="/painel" replace /> }, { path: 'painel', element: <DashboardPage /> }, ...clientes, ...precos, ...emBreve],
       },
     ],
   },
