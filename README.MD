@@ -42,8 +42,8 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 ## Funcionalidades
 
 **Pacientes**
-- [ ] Cadastro com validação de CPF, data de nascimento (idade calculada) e origem (clínica, particular ou plano)
-- [ ] Responsáveis vinculados, para pacientes menores de idade
+- [x] Cadastro com validação de CPF, data de nascimento (idade calculada) e origem (clínica, particular ou plano)
+- [x] Responsáveis vinculados, para pacientes menores de idade
 - [ ] Busca por nome ou CPF e ficha com o histórico de atendimentos e orçamentos
 
 **Atendimentos**
@@ -207,8 +207,8 @@ orto-fortino/
 
 | Fase | Entrega | Status |
 |---|---|---|
-| 0 | Fundação: projeto, tema, Supabase, Login e Dashboard | ⏳ |
-| 1 | Pacientes e responsáveis | ⬜ |
+| 0 | Fundação: projeto, tema, Supabase, Login e Dashboard | ✅ |
+| 1 | Pacientes e responsáveis | ✅ |
 | 2 | Atendimentos, ficha técnica e pagamento | ✅ |
 | 3 | Dashboard com dados reais | ⬜ |
 | 4 | Tabela de preços editável | ⬜ |
