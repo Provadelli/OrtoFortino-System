@@ -13,15 +13,22 @@ const NotFoundPage = lazy(() => import('@/features/placeholder/NotFoundPage'))
 const PacientesPage = lazy(() => import('@/features/pacientes/PacientesPage'))
 const PacienteFormPage = lazy(() => import('@/features/pacientes/PacienteFormPage'))
 const PacienteFichaPage = lazy(() => import('@/features/pacientes/PacienteFichaPage'))
+const AtendimentosPage = lazy(() => import('@/features/atendimentos/AtendimentosPage'))
+const AtendimentoFormPage = lazy(() => import('@/features/atendimentos/AtendimentoFormPage'))
+const AtendimentoPage = lazy(() => import('@/features/atendimentos/AtendimentoPage'))
 
 const clientes = [
   { path: 'clientes', element: <PacientesPage /> },
   { path: 'clientes/novo', element: <PacienteFormPage /> },
   { path: 'clientes/:id', element: <PacienteFichaPage /> },
   { path: 'clientes/:id/editar', element: <PacienteFormPage /> },
+  { path: 'atendimentos', element: <AtendimentosPage /> },
+  { path: 'atendimentos/novo', element: <AtendimentoFormPage /> },
+  { path: 'atendimentos/:id', element: <AtendimentoPage /> },
+  { path: 'atendimentos/:id/editar', element: <AtendimentoFormPage /> },
 ]
 
-const emBreve = ['atendimentos', 'orcamentos', 'tabela-de-precos', 'configuracoes'].map((path) => ({
+const emBreve = ['orcamentos', 'tabela-de-precos', 'configuracoes'].map((path) => ({
   path: `${path}/*`,
   element: <EmBrevePage />,
 }))

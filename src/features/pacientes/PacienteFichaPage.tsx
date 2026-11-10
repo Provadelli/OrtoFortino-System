@@ -1,12 +1,14 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { ArrowLeftIcon, ClipboardIcon, EyeIcon, EyeOffIcon, FileIcon } from '@/components/ui/icons'
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
 import { maskCpf } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { HistoricoAtendimentos } from '@/features/atendimentos/HistoricoAtendimentos'
+import { isDbError } from '@/lib/supabase'
 import { useExcluirPaciente, usePaciente } from './api'
 import { origemLabel } from './schema'
 
@@ -113,15 +115,8 @@ export default function PacienteFichaPage() {
           )}
         </Card>
 
-        <Card title="Histórico" id="c-hist">
-          <ul className="m-0 flex list-none flex-col gap-3 p-0">
-            <li className="flex items-center gap-3 rounded-field bg-surface p-3 text-sm text-muted">
-              <ClipboardIcon className="shrink-0 text-primary" /> Os atendimentos deste paciente aparecem aqui na próxima etapa.
-            </li>
-            <li className="flex items-center gap-3 rounded-field bg-surface p-3 text-sm text-muted">
-              <FileIcon className="shrink-0 text-primary" /> Os orçamentos deste paciente aparecem aqui na etapa de orçamentos.
-            </li>
-          </ul>
+        <Card title="Atendimentos" id="c-hist">
+          <HistoricoAtendimentos pacienteId={p.id} />
         </Card>
       </div>
 
@@ -187,8 +182,12 @@ function ExcluirPaciente({ id, nome }: { id: string; nome: string }) {
       await excluir.mutateAsync(id)
       dialog.current?.close()
       navigate('/clientes', { replace: true, state: { notice: `Cadastro de ${nome} excluído.` } })
-    } catch {
-      setErro('Não foi possível excluir agora. Tente de novo.')
+    } catch (err) {
+      setErro(
+        isDbError(err) && err.code === '23503'
+          ? 'Este paciente tem atendimentos registrados. Exclua os atendimentos antes de excluir o cadastro.'
+          : 'Não foi possível excluir agora. Tente de novo.',
+      )
     }
   }
 

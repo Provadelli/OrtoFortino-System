@@ -47,12 +47,12 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 - [ ] Busca por nome ou CPF e ficha com o histórico de atendimentos e orçamentos
 
 **Atendimentos**
-- [ ] Categorias de serviço (confecção, ajuste, reparo, manutenção), incluindo serviços sem custo
-- [ ] Status: em contato → em produção → pronto → entregue
-- [ ] Datas de primeiro contato, fechamento, prazo de entrega e conclusão
-- [ ] Pagamento com status e forma de pagamento
-- [ ] Ficha técnica digital, baseada na ficha de montagem em papel
-- [ ] Filtros: em andamento, finalizados, pagamento pendente
+- [x] Categorias de serviço (confecção, ajuste, reparo, manutenção), incluindo serviços sem custo
+- [x] Status: em contato → em produção → pronto → entregue
+- [x] Datas de primeiro contato, fechamento, prazo de entrega e conclusão
+- [x] Pagamento com status e forma de pagamento
+- [x] Ficha técnica digital, baseada na ficha de montagem em papel
+- [x] Filtros: em andamento, finalizados, pagamento pendente
 
 **Tabela de preços**
 - [ ] Produtos-base e adicionais com preço editável
@@ -209,7 +209,7 @@ orto-fortino/
 |---|---|---|
 | 0 | Fundação: projeto, tema, Supabase, Login e Dashboard | ⏳ |
 | 1 | Pacientes e responsáveis | ⬜ |
-| 2 | Atendimentos, ficha técnica e pagamento | ⬜ |
+| 2 | Atendimentos, ficha técnica e pagamento | ✅ |
 | 3 | Dashboard com dados reais | ⬜ |
 | 4 | Tabela de preços editável | ⬜ |
 | 5 | Orçamentos | ⬜ |

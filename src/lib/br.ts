@@ -59,3 +59,23 @@ export const UFS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
   'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ] as const
+
+/** "1.234,56" | "1.250" | "1234.56" | "R$ 50" → número (NaN se inválido; "" → 0) */
+export function parseBRL(value: string) {
+  const s = value.replace(/[R$\s]/g, '')
+  if (s === '') return 0
+  // vírgula = decimal; sem vírgula, "1.250" / "12.000.000" = milhar (padrão brasileiro)
+  const normalized = s.includes(',') || /^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s
+  return /^\d+(\.\d{1,2})?$/.test(normalized) ? Number(normalized) : Number.NaN
+}
+
+/** 1234.5 → "1.234,50" (para preencher campos de valor) */
+export const formatMoneyInput = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Data local de hoje em "AAAA-MM-DD" (sem o desvio de fuso do toISOString). */
+export function todayIso(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Normaliza texto para busca: minúsculas e sem acento (igual ao nome_busca do banco). */
+export const normalizeSearch = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()

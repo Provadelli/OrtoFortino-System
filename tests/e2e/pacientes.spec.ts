@@ -37,6 +37,7 @@ async function mockDb(page: Page, { vazio = false } = {}) {
     return r.fulfill({ json: PACIENTE.id })
   })
   await page.route('**/rest/v1/pacientes*', (r) => r.fulfill({ json: PACIENTE }))
+  await page.route('**/rest/v1/atendimentos*', (r) => r.fulfill({ json: [] }))
   return { salvo: () => salvo }
 }
 

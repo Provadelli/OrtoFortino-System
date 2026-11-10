@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ageFrom, formatCpf, formatIsoDate, formatPhone, isValidCpf } from '../../src/lib/br'
+import { ageFrom, formatCpf, formatIsoDate, formatMoneyInput, formatPhone, isValidCpf, parseBRL } from '../../src/lib/br'
+import { atendimentoSchema, atendimentoVazio, toPayload as toPayloadAtendimento } from '../../src/features/atendimentos/schema'
 import { pacienteSchema, pacienteVazio, toPayload } from '../../src/features/pacientes/schema'
 
 describe('CPF', () => {
@@ -45,5 +46,46 @@ describe('schema do paciente', () => {
     expect(p.dados.cpf).toBe('52998224725')
     expect(p.dados.telefone).toBe('21964973837')
     expect(p.dados.origem_nome).toBe('')
+  })
+})
+
+describe('valores em reais', () => {
+  it('entende o formato brasileiro', () => {
+    expect(parseBRL('1.250,00')).toBe(1250)
+    expect(parseBRL('1.250')).toBe(1250)
+    expect(parseBRL('12.000.000')).toBe(12000000)
+    expect(parseBRL('R$ 50')).toBe(50)
+    expect(parseBRL('99,9')).toBe(99.9)
+    expect(parseBRL('1234.56')).toBe(1234.56)
+    expect(parseBRL('')).toBe(0)
+  })
+  it('rejeita valores inválidos', () => {
+    expect(parseBRL('abc')).toBeNaN()
+    expect(parseBRL('1,2,3')).toBeNaN()
+    expect(parseBRL('-10')).toBeNaN()
+  })
+  it('formata para o campo', () => {
+    expect(formatMoneyInput(1250.5)).toBe('1.250,50')
+  })
+})
+
+describe('schema do atendimento', () => {
+  const base = { ...atendimentoVazio('11111111-1111-4111-8111-111111111111', '2026-11-09'), valor: '1.250,00' }
+  it('não aceita pago maior que o valor', () => {
+    const r = atendimentoSchema.safeParse({ ...base, valor_pago: '2.000' })
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0]?.path).toEqual(['valor_pago'])
+  })
+  it('não aceita fechamento antes do primeiro contato', () => {
+    expect(atendimentoSchema.safeParse({ ...base, data_fechamento: '2026-11-01' }).success).toBe(false)
+  })
+  it('sem ficha envia null e converte valores', () => {
+    const p = toPayloadAtendimento({ ...base, valor_pago: '500', com_ficha: false })
+    expect(p.ficha).toBeNull()
+    expect(p.dados).toMatchObject({ valor: 1250, valor_pago: 500 })
+  })
+  it('ficha de prótese limpa campos de órtese', () => {
+    const p = toPayloadAtendimento({ ...base, ficha: { ...base.ficha, tipo: 'protese', produto: 'x', especificacoes: ['90°'], tema: 'dino' } })
+    expect(p.ficha).toMatchObject({ tipo: 'protese', especificacoes: [], tema: '' })
   })
 })
