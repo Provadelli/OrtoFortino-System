@@ -206,8 +206,39 @@ function Itens({ o }: { o: Orcamento }) {
       <h2 id="t-itens" className="m-0 text-[19px] font-semibold">
         Itens
       </h2>
+      {/* Celular: lista empilhada (preço e total sempre à vista). Desktop: tabela. */}
+      <div className="flex flex-col gap-4 sm:hidden">
+        {secoes.map((s) => {
+          const itens = s.indices.map((i) => o.orcamento_itens[i]!)
+          return (
+            <section key={s.nome} aria-label={s.nome} className="flex flex-col">
+              <h3 className="m-0 rounded-md bg-surface px-3 py-2 text-[13px] font-semibold tracking-wide text-ink-soft uppercase">{s.nome}</h3>
+              <ul className="m-0 list-none p-0">
+                {itens.map((i) => (
+                  <li key={i.id} className="flex items-start justify-between gap-3 border-b border-line-soft py-3">
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-[15px] font-semibold">{i.descricao}</span>
+                      {i.detalhe && <span className="text-[13px] text-muted">{i.detalhe}</span>}
+                      <span className="text-[13px] text-muted tabular-nums">
+                        {qtd(i.quantidade)} {i.unidade} × {formatBRL(i.preco_unitario)}
+                      </span>
+                    </span>
+                    <span className="text-[15px] font-semibold whitespace-nowrap tabular-nums">{formatBRL(i.total)}</span>
+                  </li>
+                ))}
+              </ul>
+              {secoes.length > 1 && (
+                <p className="m-0 flex justify-between pt-2 text-[13px] text-muted">
+                  <span>Subtotal {s.nome}</span>
+                  <strong className="text-ink tabular-nums">{formatBRL(itens.reduce((a, i) => a + i.total, 0))}</strong>
+                </p>
+              )}
+            </section>
+          )
+        })}
+      </div>
       {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- área rolável precisa ser alcançável pelo teclado (WCAG 2.1.1) */}
-      <section className="overflow-x-auto overscroll-x-contain" aria-label="Itens do orçamento (role para os lados)" tabIndex={0}>
+      <section className="hidden overflow-x-auto overscroll-x-contain sm:block" aria-label="Itens do orçamento (role para os lados)" tabIndex={0}>
         <table className="w-full min-w-[600px] border-collapse text-sm">
           <caption className="sr-only">Itens agrupados por seção, com quantidade, preço unitário e total</caption>
           <thead>

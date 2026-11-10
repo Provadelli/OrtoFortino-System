@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -16,9 +16,11 @@ import { formatBRL } from '@/lib/format'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { toForm, useOrcamento, useSalvarOrcamento } from './api'
-import { agruparSecoes, calcular } from './calc'
+import { calcular, SEM_SECAO } from './calc'
 import { editavel, STATUS_ORCAMENTO } from './constants'
 import { orcamentoSchema, orcamentoVazio, parseQtd, type ItemForm, type OrcamentoForm } from './schema'
+
+const nomeSecao = (s: string | undefined) => s?.trim() || SEM_SECAO
 
 export default function OrcamentoFormPage() {
   const { id } = useParams()
@@ -66,7 +68,7 @@ function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: str
     control,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<OrcamentoForm>({ resolver: zodResolver(orcamentoSchema), defaultValues: initial, mode: 'onTouched' })
-  const { fields, append, remove } = useFieldArray({ control, name: 'itens', keyName: 'key' })
+  const { fields, append, insert, remove } = useFieldArray({ control, name: 'itens', keyName: 'key' })
   const [itens, descontoTipo, desconto] = useWatch({ control, name: ['itens', 'desconto_tipo', 'desconto'] })
 
   const calc = useMemo(
@@ -137,10 +139,14 @@ function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: str
         />
       </Section>
 
-      <Section id="sec-itens" title="Itens" description="Busque na tabela de preços ou inclua um item avulso. Os itens são agrupados pela seção.">
+      <Section id="sec-itens" title="Itens" description="Busque na tabela de preços ou inclua um item avulso. No orçamento, os itens saem agrupados pela seção.">
         <AdicionarProduto
           onAdd={(item) => {
-            append(item, { shouldFocus: false })
+            // entra logo depois do último item da mesma seção (a lista continua agrupada)
+            const nome = nomeSecao(item.secao)
+            const ultimo = itens.findLastIndex((x) => nomeSecao(x.secao) === nome)
+            if (ultimo >= 0) insert(ultimo + 1, item, { shouldFocus: false })
+            else append(item, { shouldFocus: false })
             setAnuncio(`${item.descricao} adicionado ao orçamento.`)
           }}
         />
@@ -151,34 +157,39 @@ function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: str
         {fields.length === 0 ? (
           <div className="rounded-field border-[1.5px] border-dashed border-field bg-surface px-4 py-6 text-center text-[15px] text-muted">Nenhum item ainda.</div>
         ) : (
-          agruparSecoes(itens).map((secao, s) => (
-            <section key={secao.nome} aria-labelledby={`secao-${s}`} className="flex flex-col gap-3">
-              <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2">
-                <h3 id={`secao-${s}`} className="m-0 text-base font-semibold">
-                  {secao.nome}
-                </h3>
-                <span className="text-sm text-muted tabular-nums">
-                  Subtotal <strong className="text-ink">{formatBRL(calc.secoes[s]?.subtotal ?? 0)}</strong>
-                </span>
-              </div>
-              <ul className="m-0 flex list-none flex-col gap-3 p-0">
-                {secao.indices.map((i) => (
+          // Lista única e estável: um item nunca é remontado enquanto se digita (ex.: o nome da seção).
+          // O cabeçalho aparece quando a seção muda; ao salvar, os itens são agrupados de vez.
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+            {fields.map((f, i) => {
+              // no render logo após append/insert, useWatch ainda traz a lista anterior: usa os valores do próprio campo
+              const item: ItemForm = itens[i] ?? f
+              const nome = nomeSecao(item.secao)
+              const novaSecao = i === 0 || nome !== nomeSecao(itens[i - 1]?.secao)
+              return (
+                <Fragment key={f.key}>
+                  {novaSecao && (
+                    <li className="mt-2 flex items-baseline justify-between gap-3 border-b border-line pb-2 first:mt-0">
+                      <h3 className="m-0 text-base font-semibold">{nome}</h3>
+                      <span className="text-sm text-muted tabular-nums">
+                        Subtotal <strong className="text-ink">{formatBRL(calc.secoes.find((s) => s.nome === nome)?.subtotal ?? 0)}</strong>
+                      </span>
+                    </li>
+                  )}
                   <ItemEditor
-                    key={fields[i]?.key ?? i}
                     index={i}
-                    item={itens[i]!}
+                    item={item}
                     total={calc.totais[i] ?? 0}
                     register={register}
                     errors={errors}
                     onRemove={() => {
-                      setAnuncio(`${itens[i]?.descricao || 'Item'} removido.`)
+                      setAnuncio(`${item.descricao || 'Item'} removido.`)
                       remove(i)
                     }}
                   />
-                ))}
-              </ul>
-            </section>
-          ))
+                </Fragment>
+              )
+            })}
+          </ul>
         )}
         <Button variant="outline" className="self-start" onClick={adicionarAvulso}>
           + Item avulso
