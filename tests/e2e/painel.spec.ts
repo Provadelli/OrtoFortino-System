@@ -31,6 +31,14 @@ test('painel mostra os números reais e os prazos', async ({ page }) => {
   const receber = page.getByRole('region', { name: 'A receber' })
   await expect(receber.getByRole('listitem').nth(0)).toContainText(/Pix · 50% na aprovação.*R\$\s*2\.450,00.*Parcial/)
   await expect(receber.getByRole('listitem').nth(1)).toContainText('Forma não definida')
+
+  await expect(resumo.getByRole('article').filter({ hasText: 'Orçamentos em aberto' })).toContainText('3')
+  await expect(resumo.getByRole('link', { name: '1 vencido' })).toHaveAttribute('href', '/orcamentos')
+  const orc = page.getByRole('region', { name: 'Orçamentos recentes' })
+  await expect(orc.getByRole('listitem').nth(0)).toContainText(/ORC-2026-0012.*Helena R\..*R\$\s*2\.450,00.*Enviado.*Vencido/)
+  await expect(orc.getByRole('listitem').nth(1)).toContainText('Aprovado')
+  await expect(orc.getByText('Helena Ribeiro')).toHaveCount(0) // nome abreviado (LGPD)
+  await expect(page.getByRole('link', { name: '+ Novo orçamento' })).toHaveAttribute('href', '/orcamentos/novo')
   await axe(page)
 
   await prazos.getByRole('link', { name: 'Polyana L.' }).click()
@@ -46,6 +54,8 @@ test('painel vazio não quebra', async ({ page }) => {
   await expect(page.getByText('Nenhum atendimento em andamento com prazo definido.')).toBeVisible()
   await expect(page.getByText('Nenhum pagamento pendente.')).toBeVisible()
   await expect(page.getByText('Tudo recebido')).toBeVisible()
+  await expect(page.getByText('Nenhum orçamento ainda.')).toBeVisible() // banco sem os campos de orçamento também não quebra
+  await expect(page.getByText('Nenhum aguardando resposta')).toBeVisible()
   await axe(page)
 })
 

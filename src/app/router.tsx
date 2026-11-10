@@ -16,6 +16,9 @@ const PacienteFichaPage = lazy(() => import('@/features/pacientes/PacienteFichaP
 const AtendimentosPage = lazy(() => import('@/features/atendimentos/AtendimentosPage'))
 const AtendimentoFormPage = lazy(() => import('@/features/atendimentos/AtendimentoFormPage'))
 const AtendimentoPage = lazy(() => import('@/features/atendimentos/AtendimentoPage'))
+const OrcamentosPage = lazy(() => import('@/features/orcamentos/OrcamentosPage'))
+const OrcamentoFormPage = lazy(() => import('@/features/orcamentos/OrcamentoFormPage'))
+const OrcamentoPage = lazy(() => import('@/features/orcamentos/OrcamentoPage'))
 const ProdutosPage = lazy(() => import('@/features/produtos/ProdutosPage'))
 const ProdutoFormPage = lazy(() => import('@/features/produtos/ProdutoFormPage'))
 const ImportarProdutosPage = lazy(() => import('@/features/produtos/ImportarProdutosPage'))
@@ -31,6 +34,13 @@ const clientes = [
   { path: 'atendimentos/:id/editar', element: <AtendimentoFormPage /> },
 ]
 
+const orcamentos = [
+  { path: 'orcamentos', element: <OrcamentosPage /> },
+  { path: 'orcamentos/novo', element: <OrcamentoFormPage /> },
+  { path: 'orcamentos/:id', element: <OrcamentoPage /> },
+  { path: 'orcamentos/:id/editar', element: <OrcamentoFormPage /> },
+]
+
 const precos = [
   { path: 'tabela-de-precos', element: <ProdutosPage /> },
   { path: 'tabela-de-precos/novo', element: <ProdutoFormPage /> },
@@ -38,7 +48,7 @@ const precos = [
   { path: 'tabela-de-precos/:id', element: <ProdutoFormPage /> },
 ]
 
-const emBreve = ['orcamentos', 'configuracoes'].map((path) => ({
+const emBreve = ['configuracoes'].map((path) => ({
   path: `${path}/*`,
   element: <EmBrevePage />,
 }))
@@ -52,7 +62,7 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <AppShell />,
-        children: [{ index: true, element: <Navigate to="/painel" replace /> }, { path: 'painel', element: <DashboardPage /> }, ...clientes, ...precos, ...emBreve],
+        children: [{ index: true, element: <Navigate to="/painel" replace /> }, { path: 'painel', element: <DashboardPage /> }, ...clientes, ...orcamentos, ...precos, ...emBreve],
       },
     ],
   },

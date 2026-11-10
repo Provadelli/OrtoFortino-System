@@ -10,6 +10,7 @@ import { todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL, formatLongDate, greeting, initials, shortName } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { STATUS_ORCAMENTO, vencido } from '@/features/orcamentos/constants'
 import { usePainel, type Painel } from './api'
 
 const delay = (i: number) => ({ '--i': i }) as CSSProperties
@@ -72,8 +73,8 @@ export default function DashboardPage() {
           <Link to="/clientes/novo" className={buttonClass('outline')}>
             + Novo paciente
           </Link>
-          <Link to="/atendimentos/novo" className={buttonClass('primary')}>
-            + Novo atendimento
+          <Link to="/orcamentos/novo" className={buttonClass('primary')}>
+            + Novo orçamento
           </Link>
         </div>
       </header>
@@ -121,7 +122,21 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
       sub: p.pagamentos_abertos ? plural(p.pagamentos_abertos, 'pagamento pendente', 'pagamentos pendentes') : 'Tudo recebido',
       dot: 'bg-brand-pink',
     },
-    { label: 'Orçamentos em aberto', value: '—', sub: 'Disponível com o módulo de orçamentos', dot: 'bg-brand-yellow' },
+    {
+      label: 'Orçamentos em aberto',
+      value: String(p.orcamentos_abertos),
+      sub: p.orcamentos_vencidos ? (
+        <Link to="/orcamentos" className="text-late-fg">
+          {plural(p.orcamentos_vencidos, 'vencido', 'vencidos')}
+        </Link>
+      ) : p.orcamentos_abertos ? (
+        `${formatBRL(p.orcamentos_valor_aberto)} em negociação`
+      ) : (
+        'Nenhum aguardando resposta'
+      ),
+      dot: 'bg-brand-yellow',
+      alert: p.orcamentos_vencidos > 0,
+    },
   ]
 
   const etapas = [
@@ -247,11 +262,37 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
       </div>
 
       <Card aria-labelledby="titulo-orcamentos" className="gap-3" style={delay(7)}>
-        <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" />
-        <div className="flex items-center gap-3 rounded-field bg-surface p-4 text-sm text-muted">
-          <FileIcon className="shrink-0 text-primary" aria-hidden="true" />
-          Os orçamentos e seus PDFs aparecem aqui quando o módulo de orçamentos for liberado.
-        </div>
+        <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" action={{ to: '/orcamentos?filtro=todos', label: 'Ver todos', srLabel: 'os orçamentos' }} />
+        {p.orcamentos.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-field bg-surface p-4 text-sm text-muted">
+            <FileIcon className="shrink-0 text-primary" aria-hidden="true" />
+            Nenhum orçamento ainda.
+            <Link to="/orcamentos/novo" className="font-semibold text-primary-ink">
+              Criar o primeiro
+            </Link>
+          </div>
+        ) : (
+          <ul className="m-0 list-none p-0">
+            {p.orcamentos.map((o) => {
+              const st = STATUS_ORCAMENTO[o.status]
+              return (
+                <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft py-2.5 first:border-t-0">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <Link to={`/orcamentos/${o.id}`} className="text-[15px] font-semibold text-ink no-underline tabular-nums hover:text-primary-ink hover:underline">
+                      {o.numero}
+                    </Link>
+                    <span className="text-[13px] text-muted">{shortName(o.paciente)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-bold tabular-nums">{formatBRL(o.total)}</span>
+                    <StatusChip tone={st.tone}>{st.label}</StatusChip>
+                    {vencido(o.status, o.validade, hoje) && <StatusChip tone="late">Vencido</StatusChip>}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </Card>
     </>
   )

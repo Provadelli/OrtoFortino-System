@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { db } from '@/lib/supabase'
 import { todayIso } from '@/lib/br'
+import type { StatusOrcamento } from '@/features/orcamentos/constants'
 import type { Categoria, FormaPagamento, StatusAtendimento, StatusPagamento } from '@/features/atendimentos/constants'
 
 export type PainelPrazo = {
@@ -23,6 +24,16 @@ export type PainelReceber = {
   paciente: string
 }
 
+export type PainelOrcamento = {
+  id: string
+  numero: string
+  status: StatusOrcamento
+  total: number
+  validade: string
+  updated_at: string
+  paciente: string
+}
+
 export type Painel = {
   em_contato: number
   em_producao: number
@@ -34,6 +45,10 @@ export type Painel = {
   pagamentos_abertos: number
   prazos: PainelPrazo[]
   receber: PainelReceber[]
+  orcamentos_abertos: number
+  orcamentos_valor_aberto: number
+  orcamentos_vencidos: number
+  orcamentos: PainelOrcamento[]
 }
 
 /** Resumo do painel numa única chamada (função painel_resumo no banco). */
@@ -49,6 +64,11 @@ export function usePainel(hoje = todayIso()) {
         ...p,
         a_receber: Number(p.a_receber),
         receber: p.receber.map((r) => ({ ...r, restante: Number(r.restante) })),
+        // "?? 0" / "?? []": tolera um banco ainda sem os campos de orçamento
+        orcamentos_abertos: p.orcamentos_abertos ?? 0,
+        orcamentos_vencidos: p.orcamentos_vencidos ?? 0,
+        orcamentos_valor_aberto: Number(p.orcamentos_valor_aberto ?? 0),
+        orcamentos: (p.orcamentos ?? []).map((o) => ({ ...o, total: Number(o.total) })),
       } satisfies Painel
     },
   })

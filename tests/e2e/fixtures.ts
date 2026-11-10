@@ -43,6 +43,13 @@ export function painelExemplo(hoje: string) {
       { id: 'a2', numero: 42, status: 'pronto', prazo_entrega: hoje, categoria: 'confeccao', servico: null, paciente: 'Mariana Lopes' },
       { id: 'a3', numero: 43, status: 'em_producao', prazo_entrega: '2099-12-31', categoria: 'ajuste', servico: 'SMO forrada', paciente: 'João Pedro' },
     ],
+    orcamentos_abertos: 3,
+    orcamentos_valor_aberto: '5120.00',
+    orcamentos_vencidos: 1,
+    orcamentos: [
+      { id: 'o1', numero: 'ORC-2026-0012', status: 'enviado', total: '2450.00', validade: '2020-01-01', updated_at: '2026-11-10T12:00:00Z', paciente: 'Helena Ribeiro' },
+      { id: 'o2', numero: 'ORC-2026-0011-v2', status: 'aprovado', total: '1800.00', validade: '2099-12-31', updated_at: '2026-11-09T12:00:00Z', paciente: 'Gabriel Teixeira' },
+    ],
     receber: [
       { id: 'a4', numero: 30, pagamento_status: 'parcial', pagamento_forma: 'pix', pagamento_detalhe: '50% na aprovação', restante: '2450.00', paciente: 'Helena Ribeiro' },
       { id: 'a5', numero: 31, pagamento_status: 'pendente', pagamento_forma: null, pagamento_detalhe: null, restante: '1800.00', paciente: 'Gabriel Teixeira' },

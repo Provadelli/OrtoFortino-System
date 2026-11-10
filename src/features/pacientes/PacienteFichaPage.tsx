@@ -8,6 +8,7 @@ import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib
 import { maskCpf } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { HistoricoAtendimentos } from '@/features/atendimentos/HistoricoAtendimentos'
+import { HistoricoOrcamentos } from '@/features/orcamentos/HistoricoOrcamentos'
 import { isDbError } from '@/lib/supabase'
 import { useExcluirPaciente, usePaciente } from './api'
 import { origemLabel } from './schema'
@@ -117,6 +118,10 @@ export default function PacienteFichaPage() {
 
         <Card title="Atendimentos" id="c-hist">
           <HistoricoAtendimentos pacienteId={p.id} />
+        </Card>
+
+        <Card title="Orçamentos" id="c-orc">
+          <HistoricoOrcamentos pacienteId={p.id} />
         </Card>
       </div>
 

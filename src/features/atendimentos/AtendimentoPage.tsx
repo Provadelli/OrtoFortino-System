@@ -8,6 +8,7 @@ import { ageFrom, formatAge, formatIsoDate, todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { useOrcamentoDoAtendimento } from '@/features/orcamentos/api'
 import { fichaDe, useAtendimento, useExcluirAtendimento, useMudarStatus } from './api'
 import { CATEGORIAS, FORMAS, label, LATERALIDADES, PAGAMENTO, prazoAlerta, PROXIMO, STATUS, statusInfo, TIPOS, type StatusAtendimento } from './constants'
 
@@ -69,6 +70,7 @@ export default function AtendimentoPage() {
               <span>Nº {a.numero}</span>
               <span aria-hidden="true">·</span>
               <span>{label(CATEGORIAS, a.categoria)}</span>
+              <OrigemOrcamento atendimentoId={a.id} />
               <StatusChip tone={st.tone}>{st.label}</StatusChip>
               {alerta && <StatusChip tone={alerta.tone}>{alerta.label}</StatusChip>}
             </div>
@@ -325,6 +327,23 @@ function Excluir({ id, numero, pacienteId }: { id: string; numero: number; pacie
           </Button>
         </div>
       </dialog>
+    </>
+  )
+}
+
+/** "· do orçamento ORC-2026-0001" quando o atendimento nasceu de uma aprovação. */
+function OrigemOrcamento({ atendimentoId }: { atendimentoId: string }) {
+  const { data } = useOrcamentoDoAtendimento(atendimentoId)
+  if (!data) return null
+  return (
+    <>
+      <span aria-hidden="true">·</span>
+      <span>
+        do orçamento{' '}
+        <Link to={`/orcamentos/${data.id}`} className="font-semibold text-primary-ink tabular-nums">
+          {data.numero}
+        </Link>
+      </span>
     </>
   )
 }

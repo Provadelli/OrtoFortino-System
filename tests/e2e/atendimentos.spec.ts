@@ -70,6 +70,10 @@ async function mockDb(page: Page, { vazio = false } = {}) {
     salvo = r.request().postDataJSON()
     return json(r, ATENDIMENTO.id)
   })
+  // origem do atendimento (orçamento aprovado)
+  await page.route('**/rest/v1/orcamentos*', (r) =>
+    json(r, new URL(r.request().url()).searchParams.has('atendimento_id') ? [{ id: 'o9', numero: 'ORC-2026-0009' }] : []),
+  )
   await page.route('**/rest/v1/atendimentos*', async (r) => {
     const req = r.request()
     if (req.method() === 'PATCH') {
@@ -122,6 +126,7 @@ test('detalhe mostra ficha técnica e avança o status', async ({ page }) => {
   await page.goto(`/atendimentos/${ATENDIMENTO.id}`)
   await expect(page.getByRole('heading', { level: 1, name: 'AFO articulada bilateral' })).toBeVisible()
   await expect(page.getByText('Tira valgo')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'ORC-2026-0009' })).toHaveAttribute('href', '/orcamentos/o9')
   await expect(page.getByText(/falta R\$\s*750,00/)).toBeVisible()
   await axe(page)
   await page.getByRole('button', { name: 'Marcar como pronto' }).click()
