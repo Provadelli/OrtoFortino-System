@@ -44,7 +44,7 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 **Pacientes**
 - [x] Cadastro com validação de CPF, data de nascimento (idade calculada) e origem (clínica, particular ou plano)
 - [x] Responsáveis vinculados, para pacientes menores de idade
-- [ ] Busca por nome ou CPF e ficha com o histórico de atendimentos e orçamentos
+- [x] Busca por nome ou CPF e ficha com o histórico de atendimentos e orçamentos
 
 **Atendimentos**
 - [x] Categorias de serviço (confecção, ajuste, reparo, manutenção), incluindo serviços sem custo
@@ -60,10 +60,10 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 - [x] Importação inicial por planilha (CSV)
 
 **Orçamentos**
-- [ ] Seleção de paciente e produtos, quantidade, desconto e itens avulsos
-- [ ] Preço editável por item, com a opção "salvar na tabela"
-- [ ] Subtotais por seção e total em tempo real
-- [ ] Versionamento após aprovação
+- [x] Seleção de paciente e produtos, quantidade, desconto e itens avulsos
+- [x] Preço editável por item, com a opção "salvar na tabela"
+- [x] Subtotais por seção e total em tempo real
+- [x] Versionamento após aprovação
 - [ ] **Geração de PDF** com a marca da empresa
 
 **Painel**
@@ -212,7 +212,7 @@ orto-fortino/
 | 2 | Atendimentos, ficha técnica e pagamento | ✅ |
 | 3 | Dashboard com dados reais | ✅ |
 | 4 | Tabela de preços editável | ✅ |
-| 5 | Orçamentos | ⬜ |
+| 5 | Orçamentos | ✅ |
 | 6 | PDF do orçamento | ⬜ |
 | 7 | Configurações e ajustes | ⬜ |
 
