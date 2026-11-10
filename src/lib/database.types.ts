@@ -150,6 +150,9 @@ isOneToOne: false
 "mascarar_cpf":
 { Args: { "c": string }; Returns: string
                            },
+"painel_resumo":
+{ Args: { "p_hoje": string }; Returns: Json
+                           },
 "salvar_atendimento":
 { Args: { "p_dados": Json,"p_ficha"?: Json,"p_id": string }; Returns: string
                            },

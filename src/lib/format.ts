@@ -36,3 +36,10 @@ export function initials(name: string) {
     .map((p) => p.charAt(0).toUpperCase())
     .join('')
 }
+
+/** Nome curto para telas à vista de terceiros (LGPD): "Polyana Souza Lima" → "Polyana L." */
+export function shortName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return parts[0] ?? ''
+  return `${parts[0]} ${parts[parts.length - 1]!.charAt(0).toUpperCase()}.`
+}

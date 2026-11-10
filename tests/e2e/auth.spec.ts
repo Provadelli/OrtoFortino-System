@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { mockAuth } from './fixtures'
+import { mockAuth, mockPainel } from './fixtures'
 
 test('rota protegida redireciona para o login', async ({ page }) => {
   await mockAuth(page)
+  await mockPainel(page)
   await page.goto('/painel')
   await expect(page).toHaveURL(/\/login\?next=%2Fpainel/)
   await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible()
@@ -10,6 +11,7 @@ test('rota protegida redireciona para o login', async ({ page }) => {
 
 test('validação mostra erros acessíveis', async ({ page }) => {
   await mockAuth(page)
+  await mockPainel(page)
   await page.goto('/login')
   await page.getByRole('button', { name: 'Entrar' }).click()
   const email = page.getByLabel('E-mail')
@@ -20,6 +22,7 @@ test('validação mostra erros acessíveis', async ({ page }) => {
 
 test('senha errada mostra alerta; certa entra no painel', async ({ page }) => {
   await mockAuth(page)
+  await mockPainel(page)
   await page.goto('/login')
   await page.getByLabel('E-mail').fill('equipe@ortofortino.com.br')
   await page.getByLabel('Senha', { exact: true }).fill('errada')
@@ -34,6 +37,7 @@ test('senha errada mostra alerta; certa entra no painel', async ({ page }) => {
 
 test('mostrar/ocultar senha', async ({ page }) => {
   await mockAuth(page)
+  await mockPainel(page)
   await page.goto('/login')
   const senha = page.getByLabel('Senha', { exact: true })
   await expect(senha).toHaveAttribute('type', 'password')
@@ -44,6 +48,7 @@ test('mostrar/ocultar senha', async ({ page }) => {
 
 test('nenhum token fica no storage do navegador', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
+  await mockPainel(page)
   await page.goto('/painel')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }))
@@ -52,6 +57,7 @@ test('nenhum token fica no storage do navegador', async ({ page }) => {
 
 test('sair volta para o login', async ({ page, isMobile }) => {
   await mockAuth(page, { loggedIn: true })
+  await mockPainel(page)
   await page.goto('/painel')
   if (isMobile) await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: 'Sair' }).click()

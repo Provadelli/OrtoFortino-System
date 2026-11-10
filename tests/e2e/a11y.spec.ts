@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { mockAuth } from './fixtures'
+import { mockAuth, mockPainel } from './fixtures'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 
@@ -23,6 +23,7 @@ for (const path of ['/login', '/esqueci-senha', '/redefinir-senha?token_hash=abc
 
 test('axe: painel sem violações', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
+  await mockPainel(page)
   await page.goto('/painel')
   await expect(page.getByRole('heading', { name: 'Orçamentos recentes' })).toBeVisible()
   await audit(page)
@@ -31,6 +32,7 @@ test('axe: painel sem violações', async ({ page }) => {
 test('axe: menu móvel aberto sem violações', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'só no celular')
   await mockAuth(page, { loggedIn: true })
+  await mockPainel(page)
   await page.goto('/painel')
   await page.getByRole('button', { name: 'Menu' }).click()
   await expect(page.getByRole('link', { name: 'Clientes' })).toBeVisible()
@@ -40,6 +42,7 @@ test('axe: menu móvel aberto sem violações', async ({ page, isMobile }) => {
 test('sem rolagem horizontal da página no celular', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'só no celular')
   await mockAuth(page, { loggedIn: true })
+  await mockPainel(page)
   for (const path of ['/login', '/painel']) {
     await page.goto(path)
     await page.waitForTimeout(600)
@@ -50,6 +53,7 @@ test('sem rolagem horizontal da página no celular', async ({ page, isMobile }) 
 
 test('skip link leva ao conteúdo', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
+  await mockPainel(page)
   await page.goto('/painel')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await page.keyboard.press('Tab')

@@ -67,8 +67,8 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 - [ ] **Geração de PDF** com a marca da empresa
 
 **Painel**
-- [ ] Indicadores: em produção, entregas da semana, a receber, orçamentos em aberto
-- [ ] Próximos prazos e atrasos
+- [x] Indicadores: em produção, entregas da semana, a receber, orçamentos em aberto
+- [x] Próximos prazos e atrasos
 
 ---
 
@@ -210,7 +210,7 @@ orto-fortino/
 | 0 | Fundação: projeto, tema, Supabase, Login e Dashboard | ✅ |
 | 1 | Pacientes e responsáveis | ✅ |
 | 2 | Atendimentos, ficha técnica e pagamento | ✅ |
-| 3 | Dashboard com dados reais | ⬜ |
+| 3 | Dashboard com dados reais | ✅ |
 | 4 | Tabela de preços editável | ⬜ |
 | 5 | Orçamentos | ⬜ |
 | 6 | PDF do orçamento | ⬜ |

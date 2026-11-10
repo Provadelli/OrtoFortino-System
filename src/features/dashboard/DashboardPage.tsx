@@ -1,32 +1,46 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { buttonClass } from '@/components/ui/Button'
+import { Button, buttonClass } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { DownloadIcon, SearchIcon } from '@/components/ui/icons'
-import { StatusChip } from '@/components/ui/StatusChip'
+import { FileIcon, SearchIcon } from '@/components/ui/icons'
+import { StatusChip, type Tone } from '@/components/ui/StatusChip'
 import { useSession } from '@/features/auth/useSession'
+import { CATEGORIAS, FORMAS, label, PAGAMENTO, prazoAlerta, statusInfo } from '@/features/atendimentos/constants'
+import { todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
-import { formatLongDate, greeting, initials } from '@/lib/format'
+import { formatBRL, formatLongDate, greeting, initials, shortName } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { avatarBg, etapas, kpis, orcamentos, pagamentos, prazos } from './sample-data'
+import { usePainel, type Painel } from './api'
 
 const delay = (i: number) => ({ '--i': i }) as CSSProperties
+
+/** Cor do avatar segue o tom do status, como no canvas. */
+const avatarBg: Record<Tone, string> = {
+  late: 'bg-late-bg',
+  today: 'bg-today-bg',
+  prod: 'bg-prod-bg',
+  ready: 'bg-ready-bg',
+  draft: 'bg-draft-bg',
+}
+
+/** "2026-11-09" → "09/11" */
+const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
 
 export default function DashboardPage() {
   usePageTitle('Painel')
   const session = useSession()
   const [now] = useState(() => new Date())
+  const [hoje] = useState(() => todayIso(now))
   const firstName = session?.user.nome?.split(' ')[0]
   const navigate = useNavigate()
-  const [notice, setNotice] = useState('')
+  const painel = usePainel(hoje)
 
   function onSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const q = new FormData(e.currentTarget).get('busca')?.toString().trim()
     navigate(q ? `/clientes?busca=${encodeURIComponent(q)}` : '/clientes')
   }
-
-  const max = Math.max(...etapas.map((e) => e.n))
 
   return (
     <>
@@ -40,41 +54,86 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-[1_1_auto] flex-wrap items-center justify-end gap-3">
           <search className="relative flex-[1_1_240px] sm:max-w-[320px]">
-          <form onSubmit={onSearch}>
-            <label htmlFor="busca" className="sr-only">
-              Buscar paciente ou CPF
-            </label>
-            <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
-            <input
-              id="busca"
-              name="busca"
-              type="search"
-              placeholder="Buscar paciente ou CPF"
-              autoComplete="off"
-              className="h-12 w-full min-w-[220px] rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
-            />
-          </form>
+            <form onSubmit={onSearch}>
+              <label htmlFor="busca" className="sr-only">
+                Buscar paciente ou CPF
+              </label>
+              <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
+              <input
+                id="busca"
+                name="busca"
+                type="search"
+                placeholder="Buscar paciente ou CPF"
+                autoComplete="off"
+                className="h-12 w-full min-w-[220px] rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
+              />
+            </form>
           </search>
           <Link to="/clientes/novo" className={buttonClass('outline')}>
             + Novo paciente
           </Link>
-          <Link to="/orcamentos/novo" className={buttonClass('primary')}>
-            + Novo orçamento
+          <Link to="/atendimentos/novo" className={buttonClass('primary')}>
+            + Novo atendimento
           </Link>
         </div>
       </header>
 
-      <p className="m-0 flex items-start gap-2.5 rounded-field border border-[#f3d27a] bg-ready-bg px-4 py-3 text-sm text-ready-fg animate-fade">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-px shrink-0" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v.5M12 11v5" strokeLinecap="round" />
-        </svg>
-        <span>
-          <strong>Dados de exemplo.</strong> Os números reais aparecem aqui assim que os módulos de Clientes e Atendimentos forem liberados.
-        </span>
-      </p>
+      {painel.isError ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-field border border-[#f6b8d6] bg-late-bg px-4 py-3 text-[15px] font-medium text-late-fg">
+          Não foi possível carregar o painel.
+          <Button variant="outline" loading={painel.isFetching} onClick={() => void painel.refetch()}>
+            Tentar de novo
+          </Button>
+        </div>
+      ) : painel.isPending ? (
+        <Esqueleto />
+      ) : (
+        <Conteudo p={painel.data} hoje={hoje} />
+      )}
+    </>
+  )
+}
 
-      {/* Indicadores */}
+function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
+  const kpis: { label: string; value: string; sub: ReactNode; dot: string; alert?: boolean }[] = [
+    {
+      label: 'Em produção',
+      value: String(p.em_producao),
+      sub: p.prontos ? `${plural(p.prontos, 'pronto', 'prontos')} para entrega` : 'Nenhum pronto para entrega',
+      dot: 'bg-brand-mint',
+    },
+    {
+      label: 'Entregas nos próximos 7 dias',
+      value: String(p.entregas_semana),
+      sub: p.atrasados ? (
+        <Link to="/atendimentos?filtro=atrasados" className="text-late-fg">
+          {plural(p.atrasados, 'atrasada', 'atrasadas')}
+        </Link>
+      ) : (
+        'Nenhuma atrasada'
+      ),
+      dot: 'bg-brand-orange',
+      alert: p.atrasados > 0,
+    },
+    {
+      label: 'A receber',
+      value: formatBRL(p.a_receber),
+      sub: p.pagamentos_abertos ? plural(p.pagamentos_abertos, 'pagamento pendente', 'pagamentos pendentes') : 'Tudo recebido',
+      dot: 'bg-brand-pink',
+    },
+    { label: 'Orçamentos em aberto', value: '—', sub: 'Disponível com o módulo de orçamentos', dot: 'bg-brand-yellow' },
+  ]
+
+  const etapas = [
+    { label: 'Em contato', n: p.em_contato, color: 'bg-brand-yellow' },
+    { label: 'Em produção', n: p.em_producao, color: 'bg-brand-mint' },
+    { label: 'Pronto para entrega', n: p.prontos, color: 'bg-brand-orange' },
+    { label: 'Entregues no mês', n: p.entregues_mes, color: 'bg-brand-pink' },
+  ]
+  const max = Math.max(1, ...etapas.map((e) => e.n))
+
+  return (
+    <>
       <section aria-labelledby="titulo-resumo" className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <h2 id="titulo-resumo" className="sr-only">
           Resumo
@@ -96,36 +155,44 @@ export default function DashboardPage() {
       </section>
 
       <div className="flex flex-wrap items-start gap-4">
-        {/* Próximos prazos */}
         <Card aria-labelledby="titulo-prazos" className="flex-[2_1_480px] gap-2" style={delay(4)}>
-          <CardHeader id="titulo-prazos" title="Próximos prazos de entrega" action={{ to: '/atendimentos', label: 'Ver todos', srLabel: 'os prazos' }} />
-          <ul className="m-0 list-none p-0">
-            {prazos.map((p) => (
-              <li key={p.nome} className="flex flex-wrap items-center gap-3.5 border-t border-line-soft py-3.5">
-                <div
-                  aria-hidden="true"
-                  className={cn('flex size-[42px] shrink-0 items-center justify-center rounded-full font-display text-sm font-bold text-ink', avatarBg[p.tone])}
-                >
-                  {initials(p.nome)}
-                </div>
-                <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
-                  <span className="text-[15px] font-semibold">{p.nome}</span>
-                  <span className="text-[13px] text-muted">{p.produto}</span>
-                </div>
-                <div className="flex min-w-[70px] flex-col items-end gap-0.5">
-                  <span className="text-xs text-muted">Entrega</span>
-                  <span className="text-[15px] font-semibold tabular-nums">{p.data}</span>
-                </div>
-                <StatusChip tone={p.tone} size="md" className="min-w-[110px] text-center">
-                  {p.status}
-                </StatusChip>
-              </li>
-            ))}
-          </ul>
+          <CardHeader id="titulo-prazos" title="Próximos prazos de entrega" action={{ to: '/atendimentos', label: 'Ver todos', srLabel: 'os atendimentos em andamento' }} />
+          {p.prazos.length === 0 ? (
+            <p className="m-0 border-t border-line-soft pt-4 text-muted">Nenhum atendimento em andamento com prazo definido.</p>
+          ) : (
+            <ul className="m-0 list-none p-0">
+              {p.prazos.map((a) => {
+                const chip = prazoAlerta(a.status, a.prazo_entrega, hoje) ?? statusInfo(a.status)
+                const nome = shortName(a.paciente)
+                return (
+                  <li key={a.id} className="flex flex-wrap items-center gap-3.5 border-t border-line-soft py-3.5">
+                    <div
+                      aria-hidden="true"
+                      className={cn('flex size-[42px] shrink-0 items-center justify-center rounded-full font-display text-sm font-bold text-ink', avatarBg[chip.tone])}
+                    >
+                      {initials(nome)}
+                    </div>
+                    <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
+                      <Link to={`/atendimentos/${a.id}`} className="text-[15px] font-semibold text-ink no-underline hover:text-primary-ink hover:underline">
+                        {nome}
+                      </Link>
+                      <span className="text-[13px] text-muted">{a.servico || label(CATEGORIAS, a.categoria)}</span>
+                    </div>
+                    <div className="flex min-w-[70px] flex-col items-end gap-0.5">
+                      <span className="text-xs text-muted">Entrega</span>
+                      <span className="text-[15px] font-semibold tabular-nums">{diaMes(a.prazo_entrega)}</span>
+                    </div>
+                    <StatusChip tone={chip.tone} size="md" className="min-w-[110px] text-center">
+                      {chip.label}
+                    </StatusChip>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </Card>
 
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
-          {/* Atendimentos por status */}
           <Card aria-labelledby="titulo-status" className="gap-4" style={delay(5)}>
             <CardHeader id="titulo-status" title="Atendimentos por status" />
             <ul className="m-0 flex list-none flex-col gap-4 p-0">
@@ -146,78 +213,62 @@ export default function DashboardPage() {
             </ul>
           </Card>
 
-          {/* A receber */}
           <Card aria-labelledby="titulo-receber" className="gap-1" style={delay(6)}>
             <div className="mb-2">
-              <CardHeader id="titulo-receber" title="A receber" action={{ to: '/atendimentos?pagamento=pendente', label: 'Ver todos', srLabel: 'os pagamentos a receber' }} />
+              <CardHeader id="titulo-receber" title="A receber" action={{ to: '/atendimentos?filtro=pagamento', label: 'Ver todos', srLabel: 'os pagamentos a receber' }} />
             </div>
-            <ul className="m-0 list-none p-0">
-              {pagamentos.map((g) => (
-                <li key={g.nome} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5">
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-[15px] font-semibold">{g.nome}</span>
-                    <span className="text-[13px] text-muted">{g.forma}</span>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-[15px] font-bold tabular-nums">{g.valor}</span>
-                    <StatusChip tone={g.tone}>{g.status}</StatusChip>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {p.receber.length === 0 ? (
+              <p className="m-0 border-t border-line-soft pt-3 text-muted">Nenhum pagamento pendente.</p>
+            ) : (
+              <ul className="m-0 list-none p-0">
+                {p.receber.map((g) => {
+                  const pg = PAGAMENTO[g.pagamento_status]
+                  return (
+                    <li key={g.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <Link to={`/atendimentos/${g.id}`} className="text-[15px] font-semibold text-ink no-underline hover:text-primary-ink hover:underline">
+                          {shortName(g.paciente)}
+                        </Link>
+                        <span className="text-[13px] text-muted">
+                          {[g.pagamento_forma ? label(FORMAS, g.pagamento_forma) : 'Forma não definida', g.pagamento_detalhe].filter(Boolean).join(' · ')}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[15px] font-bold tabular-nums">{formatBRL(g.restante)}</span>
+                        <StatusChip tone={pg.tone}>{pg.label}</StatusChip>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </Card>
         </div>
       </div>
 
-      {/* Orçamentos recentes */}
       <Card aria-labelledby="titulo-orcamentos" className="gap-3" style={delay(7)}>
-        <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" action={{ to: '/orcamentos', label: 'Ver todos', srLabel: 'os orçamentos' }} />
-        {/* Região rolável precisa ser focável pelo teclado (axe: scrollable-region-focusable / WCAG 2.1.1) */}
-        {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-        <section className="overflow-x-auto overscroll-x-contain" aria-label="Tabela de orçamentos recentes (role para os lados)" tabIndex={0}>
-          <table className="w-full min-w-[760px] border-collapse text-sm">
-            <caption className="sr-only">Os 4 orçamentos mais recentes, com valor, status e PDF</caption>
-            <thead>
-              <tr className="text-left text-[13px] text-muted">
-                <th scope="col" className="py-2.5 pr-3 font-semibold">Nº</th>
-                <th scope="col" className="px-3 py-2.5 font-semibold">Paciente</th>
-                <th scope="col" className="px-3 py-2.5 font-semibold">Itens</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-semibold">Valor</th>
-                <th scope="col" className="px-3 py-2.5 font-semibold">Status</th>
-                <th scope="col" className="px-3 py-2.5 font-semibold">Data</th>
-                <th scope="col" className="py-2.5 pl-3 text-right font-semibold">PDF</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orcamentos.map((o) => (
-                <tr key={o.num} className="border-t border-line-soft transition-colors hover:bg-surface">
-                  <th scope="row" className="py-3 pr-3 text-left font-semibold whitespace-nowrap">{o.num}</th>
-                  <td className="p-3 whitespace-nowrap">{o.nome}</td>
-                  <td className="p-3 text-ink-soft">{o.itens}</td>
-                  <td className="p-3 text-right font-bold whitespace-nowrap tabular-nums">{o.valor}</td>
-                  <td className="p-3">
-                    <StatusChip tone={o.tone}>{o.status}</StatusChip>
-                  </td>
-                  <td className="p-3 text-muted tabular-nums">{o.data}</td>
-                  <td className="py-1.5 pl-3 text-right">
-                    <button
-                      type="button"
-                      aria-label={`Baixar PDF do ${o.num}`}
-                      onClick={() => setNotice(`O PDF do ${o.num} estará disponível na etapa de orçamentos.`)}
-                      className="inline-flex size-11 cursor-pointer items-center justify-center rounded-[10px] border border-field-soft bg-white text-primary-ink transition-[background-color,transform] duration-150 hover:bg-prod-bg active:scale-95"
-                    >
-                      <DownloadIcon />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-        <output aria-live="polite" className={cn('m-0 block text-sm text-muted', !notice && 'sr-only')}>
-          {notice}
-        </output>
+        <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" />
+        <div className="flex items-center gap-3 rounded-field bg-surface p-4 text-sm text-muted">
+          <FileIcon className="shrink-0 text-primary" aria-hidden="true" />
+          Os orçamentos e seus PDFs aparecem aqui quando o módulo de orçamentos for liberado.
+        </div>
       </Card>
     </>
+  )
+}
+
+function Esqueleto() {
+  return (
+    <div aria-busy="true" aria-label="Carregando o painel" className="flex flex-col gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex h-[134px] flex-col gap-3 rounded-card border border-line bg-white p-5">
+            <div className="h-4 w-32 animate-pulse rounded bg-line" />
+            <div className="h-8 w-20 animate-pulse rounded bg-line" />
+          </div>
+        ))}
+      </div>
+      <div className="h-[320px] animate-pulse rounded-card border border-line bg-white" />
+    </div>
   )
 }
