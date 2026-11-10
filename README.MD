@@ -55,9 +55,9 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 - [x] Filtros: em andamento, finalizados, pagamento pendente
 
 **Tabela de preços**
-- [ ] Produtos-base e adicionais com preço editável
-- [ ] Histórico de preços
-- [ ] Importação inicial por planilha (CSV)
+- [x] Produtos-base e adicionais com preço editável
+- [x] Histórico de preços
+- [x] Importação inicial por planilha (CSV)
 
 **Orçamentos**
 - [ ] Seleção de paciente e produtos, quantidade, desconto e itens avulsos
@@ -211,7 +211,7 @@ orto-fortino/
 | 1 | Pacientes e responsáveis | ✅ |
 | 2 | Atendimentos, ficha técnica e pagamento | ✅ |
 | 3 | Dashboard com dados reais | ✅ |
-| 4 | Tabela de preços editável | ⬜ |
+| 4 | Tabela de preços editável | ✅ |
 | 5 | Orçamentos | ⬜ |
 | 6 | PDF do orçamento | ⬜ |
 | 7 | Configurações e ajustes | ⬜ |
