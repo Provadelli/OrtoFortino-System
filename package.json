@@ -14,6 +14,7 @@
     "secrets:check": "secretlint \"**/*\"",
     "lighthouse": "npx --yes @lhci/cli@0.16.0 autorun",
     "user:create": "tsx --env-file=.env.local scripts/create-user.ts",
+    "user:reset-mfa": "tsx --env-file=.env.local scripts/reset-mfa.ts",
     "prepare": "husky"
   },
   "dependencies": {

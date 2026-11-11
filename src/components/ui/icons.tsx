@@ -117,3 +117,19 @@ export const CheckCircleIcon = (p: P) => (
     <path d="m8 12.5 2.7 2.7L16 10" />
   </Icon>
 )
+export const ChevronUpIcon = (p: P) => (
+  <Icon size={18} strokeWidth={2} {...p}>
+    <path d="m6 15 6-6 6 6" />
+  </Icon>
+)
+export const ChevronDownIcon = (p: P) => (
+  <Icon size={18} strokeWidth={2} {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+)
+export const ShieldIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Z" />
+    <path d="m9 12 2.2 2.2L15.5 10" />
+  </Icon>
+)

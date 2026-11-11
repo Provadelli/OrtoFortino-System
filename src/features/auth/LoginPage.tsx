@@ -5,9 +5,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/Button'
 import { Field, PasswordField } from '@/components/ui/Field'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { AuthError, login, refresh } from './auth-client'
+import { AuthError, login, loginMfa, refresh } from './auth-client'
 import { AuthLayout, FormAlert } from './AuthLayout'
-import { loginSchema, type LoginInput } from './schemas'
+import { limparCodigo, loginSchema, mfaCodeSchema, type LoginInput, type MfaCodeInput } from './schemas'
 import { safeNext } from './safe-next'
 
 const preloadDashboard = () => import('@/features/dashboard/DashboardPage')
@@ -19,6 +19,8 @@ export default function LoginPage() {
   const next = safeNext(params.get('next'))
   const [serverError, setServerError] = useState<string | null>(null)
   const expired = params.get('motivo') === 'sessao-expirada'
+  // Quem ativou o autenticador passa por uma 2ª etapa: o código de 6 dígitos.
+  const [etapa, setEtapa] = useState<'senha' | 'codigo'>('senha')
 
   const {
     register,
@@ -47,7 +49,10 @@ export default function LoginPage() {
   const onSubmit = handleSubmit(async ({ email, password, remember }) => {
     setServerError(null)
     try {
-      await login(email, password, remember)
+      if ((await login(email, password, remember)) === 'mfa') {
+        setEtapa('codigo')
+        return
+      }
       navigate(next, { replace: true, viewTransition: true })
     } catch (err) {
       if (err instanceof AuthError && err.status === 429) {
@@ -60,6 +65,19 @@ export default function LoginPage() {
       }
     }
   })
+
+  if (etapa === 'codigo')
+    return (
+      <AuthLayout>
+        <EtapaCodigo
+          onEntrou={() => navigate(next, { replace: true, viewTransition: true })}
+          onVoltar={(msg) => {
+            setServerError(msg)
+            setEtapa('senha')
+          }}
+        />
+      </AuthLayout>
+    )
 
   return (
     <AuthLayout>
@@ -106,5 +124,71 @@ export default function LoginPage() {
         </Button>
       </form>
     </AuthLayout>
+  )
+}
+
+function EtapaCodigo({ onEntrou, onVoltar }: { onEntrou: () => void; onVoltar: (msg: string | null) => void }) {
+  usePageTitle('Código de verificação')
+  const [serverError, setServerError] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    setFocus,
+    resetField,
+    formState: { errors, isSubmitting },
+  } = useForm<MfaCodeInput>({ resolver: zodResolver(mfaCodeSchema), defaultValues: { code: '' } })
+
+  useEffect(() => setFocus('code'), [setFocus])
+
+  const onSubmit = handleSubmit(async ({ code }) => {
+    setServerError(null)
+    try {
+      await loginMfa(limparCodigo(code))
+      onEntrou()
+    } catch (err) {
+      if (err instanceof AuthError && err.status === 401) return onVoltar(err.message)
+      if (err instanceof AuthError && err.status === 429) {
+        const min = Math.max(1, Math.ceil((err.retryAfter ?? 900) / 60))
+        setServerError(`Muitas tentativas. Por segurança, aguarde ${min} minuto${min > 1 ? 's' : ''} e tente de novo.`)
+      } else if (err instanceof AuthError && err.status === 400) {
+        setServerError('Código incorreto ou expirado. Confira o app e digite o código atual.')
+      } else {
+        setServerError('Não conseguimos conectar agora. Verifique sua internet e tente de novo.')
+      }
+      resetField('code')
+      setFocus('code')
+    }
+  })
+
+  return (
+    <form noValidate onSubmit={onSubmit} className="flex w-full max-w-[400px] flex-col gap-[22px] animate-rise" aria-labelledby="titulo-codigo">
+      <div className="flex flex-col gap-2">
+        <h1 id="titulo-codigo" className="m-0 text-[34px] leading-[1.15] font-bold">
+          Verificação em duas etapas
+        </h1>
+        <p className="m-0 text-base text-muted">Abra o app autenticador no celular e digite o código de 6 números da Orto Fortino.</p>
+      </div>
+
+      {serverError && <FormAlert>{serverError}</FormAlert>}
+
+      <Field
+        label="Código do autenticador"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={7}
+        placeholder="000000"
+        className="font-display text-xl tracking-[0.3em] tabular-nums"
+        error={errors.code?.message}
+        {...register('code')}
+      />
+
+      <Button type="submit" size="lg" loading={isSubmitting}>
+        {isSubmitting ? 'Confirmando…' : 'Confirmar e entrar'}
+      </Button>
+      <Button variant="ghost" onClick={() => onVoltar(null)}>
+        Voltar e usar outra conta
+      </Button>
+      <p className="m-0 text-[13px] text-muted">Perdeu o celular ou o app? Fale com o responsável pelo sistema para desativar a verificação da sua conta.</p>
+    </form>
   )
 }

@@ -65,16 +65,24 @@ export const orcamentoSchema = z
 export type OrcamentoForm = z.infer<typeof orcamentoSchema>
 export type ItemForm = z.infer<typeof itemSchema>
 
-export function orcamentoVazio(pacienteId = '', hoje = todayIso()): OrcamentoForm {
+/** Padrões definidos em Configurações (validade e textos que já vêm preenchidos). */
+export type PadroesOrcamento = {
+  orc_validade_dias: number
+  orc_condicoes_pagamento: string | null
+  orc_prazo_entrega: string | null
+  orc_observacoes: string | null
+}
+
+export function orcamentoVazio(pacienteId = '', hoje = todayIso(), padroes?: PadroesOrcamento | null): OrcamentoForm {
   return {
     paciente_id: pacienteId,
     data_emissao: hoje,
-    validade: somarDias(hoje, VALIDADE_PADRAO_DIAS),
+    validade: somarDias(hoje, padroes?.orc_validade_dias ?? VALIDADE_PADRAO_DIAS),
     desconto_tipo: 'valor',
     desconto: '',
-    condicoes_pagamento: '',
-    prazo_entrega: '',
-    observacoes: '',
+    condicoes_pagamento: padroes?.orc_condicoes_pagamento ?? '',
+    prazo_entrega: padroes?.orc_prazo_entrega ?? '',
+    observacoes: padroes?.orc_observacoes ?? '',
     itens: [],
   }
 }

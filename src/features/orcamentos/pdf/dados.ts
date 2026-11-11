@@ -1,4 +1,5 @@
 import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
+import { EMPRESA_PADRAO, rodapeEmpresa, type Empresa } from '@/lib/empresa'
 import { formatBRL } from '@/lib/format'
 import { agruparSecoes } from '../calc'
 import type { StatusOrcamento } from '../constants'
@@ -38,7 +39,7 @@ export function nomeArquivoPdf(numero: string, paciente: string | undefined) {
 }
 
 /** Converte o orçamento no conteúdo pronto do PDF (textos já formatados). */
-export function dadosPdf(o: OrcamentoParaPdf, hoje = new Date()) {
+export function dadosPdf(o: OrcamentoParaPdf, hoje = new Date(), empresa: Empresa = EMPRESA_PADRAO) {
   const p = o.pacientes
   const idade = ageFrom(p?.data_nascimento, hoje)
   const menor = idade !== null && idade < 18
@@ -105,6 +106,7 @@ export function dadosPdf(o: OrcamentoParaPdf, hoje = new Date()) {
     prazo: o.prazo_entrega,
     observacoes: o.observacoes,
     arquivo: nomeArquivoPdf(o.numero, p?.nome),
+    empresa: { nome: empresa.nome, ...rodapeEmpresa(empresa) },
   }
 }
 

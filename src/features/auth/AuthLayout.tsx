@@ -1,13 +1,36 @@
-import type { ReactNode } from 'react'
-
-const YEAR = new Date().getFullYear()
+import { useEffect, useState, type ReactNode } from 'react'
 import { BrandStripe } from '@/components/brand/BrandStripe'
 import { Logo } from '@/components/brand/Logo'
-import { EMPRESA } from '@/lib/empresa'
 import { LockIcon } from '@/components/ui/icons'
+import { formatPhone } from '@/lib/br'
+import { EMPRESA_PADRAO } from '@/lib/empresa'
+
+const YEAR = new Date().getFullYear()
+
+type Publica = { nome: string; telefone: string | null }
+const RESERVA: Publica = { nome: EMPRESA_PADRAO.nome, telefone: EMPRESA_PADRAO.telefone }
+let pedido: Promise<Publica> | undefined
+
+/** Nome e telefone editados em Configurações (uma busca por carregamento; sem rede, fica o padrão). */
+function useEmpresaPublica() {
+  const [empresa, setEmpresa] = useState(RESERVA)
+  useEffect(() => {
+    let vivo = true
+    pedido ??= fetch('/api/empresa', { credentials: 'omit' })
+      .then((r) => (r.ok ? (r.json() as Promise<Partial<Publica>>) : {}))
+      .then((d: Partial<Publica>) => ({ nome: d.nome || RESERVA.nome, telefone: d.telefone ?? RESERVA.telefone }))
+      .catch(() => RESERVA)
+    void pedido.then((e) => vivo && setEmpresa(e))
+    return () => {
+      vivo = false
+    }
+  }, [])
+  return empresa
+}
 
 /** Tela dividida do canvas: marca à esquerda (menta + raios de sol), formulário à direita. */
 export function AuthLayout({ children }: { children: ReactNode }) {
+  const empresa = useEmpresaPublica()
   return (
     <div className="flex min-h-dvh flex-wrap bg-white">
       <aside
@@ -32,7 +55,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             Dados dos pacientes protegidos conforme a LGPD.
           </p>
           <p className="m-0">
-            © {YEAR} {EMPRESA.nome} · {EMPRESA.telefone}
+            © {YEAR} {empresa.nome}
+            {empresa.telefone ? ` · ${formatPhone(empresa.telefone)}` : ''}
           </p>
         </footer>
       </main>

@@ -20,6 +20,7 @@ import { useRascunho } from '@/lib/rascunho'
 import { toForm, useOrcamento, useSalvarOrcamento } from './api'
 import { calcular, SEM_SECAO } from './calc'
 import { editavel, STATUS_ORCAMENTO } from './constants'
+import { useConfiguracoes } from '@/features/configuracoes/api'
 import { orcamentoSchema, orcamentoVazio, parseQtd, type ItemForm, type OrcamentoForm } from './schema'
 
 const nomeSecao = (s: string | undefined) => s?.trim() || SEM_SECAO
@@ -29,8 +30,11 @@ export default function OrcamentoFormPage() {
   const [params] = useSearchParams()
   const [hoje] = useState(todayIso)
   const { data: o, isPending, isError } = useOrcamento(id)
+  // Orçamento novo já nasce com os padrões de Configurações (se falhar, usa os de sempre).
+  const config = useConfiguracoes()
 
   if (id && isPending) return <PageSkeleton />
+  if (!id && config.isPending) return <PageSkeleton />
   if (id && (isError || !o))
     return (
       <div role="alert" className="flex flex-col items-start gap-3 rounded-card border border-line bg-white p-8">
@@ -53,7 +57,7 @@ export default function OrcamentoFormPage() {
       </div>
     )
 
-  return <OrcamentoFormInner key={o?.id ?? 'novo'} id={o?.id} numero={o?.numero} base={o?.updated_at ?? null} initial={o ? toForm(o) : orcamentoVazio(params.get('paciente') ?? '', hoje)} />
+  return <OrcamentoFormInner key={o?.id ?? 'novo'} id={o?.id} numero={o?.numero} base={o?.updated_at ?? null} initial={o ? toForm(o) : orcamentoVazio(params.get('paciente') ?? '', hoje, config.data)} />
 }
 
 function OrcamentoFormInner({ id, numero, initial, base }: { id?: string; numero?: string; initial: OrcamentoForm; base: string | null }) {

@@ -1,9 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { ArrowLeftIcon } from '@/components/ui/icons'
 import { StatusChip } from '@/components/ui/StatusChip'
+import { configuracoesQuery, empresaDe } from '@/features/configuracoes/api'
 import { ageFrom, formatAge, formatIsoDate, todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
@@ -438,12 +440,13 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
 /** Gera o PDF no navegador (biblioteca carregada só agora) e baixa o arquivo. */
 function BaixarPdf({ o, onErro }: { o: Orcamento; onErro: (msg: string | null) => void }) {
   const [gerando, setGerando] = useState(false)
+  const qc = useQueryClient()
   async function baixar() {
     onErro(null)
     setGerando(true)
     try {
-      const { gerarPdfOrcamento } = await import('./pdf/gerar')
-      const { blob, nome } = await gerarPdfOrcamento(o)
+      const [{ gerarPdfOrcamento }, config] = await Promise.all([import('./pdf/gerar'), qc.fetchQuery(configuracoesQuery).catch(() => null)])
+      const { blob, nome } = await gerarPdfOrcamento(o, empresaDe(config))
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

@@ -23,6 +23,40 @@ export function formatCpf(value: string) {
     .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
 }
 
+export function isValidCnpj(value: string) {
+  const c = onlyDigits(value)
+  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false
+  const dv = (n: number) => {
+    let s = 0
+    let peso = n - 7
+    for (let i = 0; i < n; i++) {
+      s += Number(c[i]) * peso--
+      if (peso < 2) peso = 9
+    }
+    const r = s % 11
+    return r < 2 ? 0 : 11 - r
+  }
+  return dv(12) === Number(c[12]) && dv(13) === Number(c[13])
+}
+
+/** "34130423000148" → "34.130.423/0001-48" (formata enquanto digita) */
+export function formatCnpj(value: string) {
+  return onlyDigits(value)
+    .slice(0, 14)
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+}
+
+/** "26020560" → "26.020-560" (formato usado nos documentos da empresa) */
+export function formatCep(value: string) {
+  return onlyDigits(value)
+    .slice(0, 8)
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2-$3')
+}
+
 /** "21964973837" → "(21) 96497-3837"; fixo "2133334444" → "(21) 3333-4444" */
 export function formatPhone(value: string) {
   const d = onlyDigits(value).slice(0, 11)

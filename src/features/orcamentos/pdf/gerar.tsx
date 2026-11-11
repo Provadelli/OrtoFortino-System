@@ -5,6 +5,7 @@ import { Font, pdf } from '@react-pdf/renderer'
 import poppins400 from '@fontsource/poppins/files/poppins-latin-400-normal.woff?url'
 import poppins600 from '@fontsource/poppins/files/poppins-latin-600-normal.woff?url'
 import poppins700 from '@fontsource/poppins/files/poppins-latin-700-normal.woff?url'
+import type { Empresa } from '@/lib/empresa'
 import { dadosPdf, type OrcamentoParaPdf } from './dados'
 import { OrcamentoPdf } from './OrcamentoPdf'
 
@@ -24,8 +25,8 @@ Font.register({
 Font.registerHyphenationCallback((palavra) => [palavra])
 
 /** Gera o PDF do orçamento e devolve o arquivo e o nome sugerido. */
-export async function gerarPdfOrcamento(o: OrcamentoParaPdf) {
-  const d = dadosPdf(o)
+export async function gerarPdfOrcamento(o: OrcamentoParaPdf, empresa?: Empresa) {
+  const d = dadosPdf(o, new Date(), empresa)
   const blob = await pdf(<OrcamentoPdf d={d} />).toBlob()
   return { blob, nome: d.arquivo }
 }

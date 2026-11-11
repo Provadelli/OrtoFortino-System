@@ -61,6 +61,18 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"configuracoes": {
+                  Row: {
+                    "created_at": string,"empresa_cep": string | null,"empresa_cidade": string | null,"empresa_cnpj": string | null,"empresa_email": string | null,"empresa_endereco": string | null,"empresa_nome": string,"empresa_slogan": string | null,"empresa_telefone": string | null,"ficha_especificacoes": string[],"ficha_produtos": string[],"id": boolean,"orc_condicoes_pagamento": string | null,"orc_observacoes": string | null,"orc_prazo_entrega": string | null,"orc_validade_dias": number,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"empresa_cep"?: string | null,"empresa_cidade"?: string | null,"empresa_cnpj"?: string | null,"empresa_email"?: string | null,"empresa_endereco"?: string | null,"empresa_nome"?: string,"empresa_slogan"?: string | null,"empresa_telefone"?: string | null,"ficha_especificacoes"?: string[],"ficha_produtos"?: string[],"id"?: boolean,"orc_condicoes_pagamento"?: string | null,"orc_observacoes"?: string | null,"orc_prazo_entrega"?: string | null,"orc_validade_dias"?: number,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"empresa_cep"?: string | null,"empresa_cidade"?: string | null,"empresa_cnpj"?: string | null,"empresa_email"?: string | null,"empresa_endereco"?: string | null,"empresa_nome"?: string,"empresa_slogan"?: string | null,"empresa_telefone"?: string | null,"ficha_especificacoes"?: string[],"ficha_produtos"?: string[],"id"?: boolean,"orc_condicoes_pagamento"?: string | null,"orc_observacoes"?: string | null,"orc_prazo_entrega"?: string | null,"orc_validade_dias"?: number,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: []
                 },"fichas_tecnicas": {
                   Row: {
                     "atendimento_id": string,"compensacao_lado": string | null,"compensacao_medida": string | null,"cor_forro": string | null,"cor_tira": string | null,"created_at": string,"created_by": string | null,"especificacoes": (string)[],"id": string,"lateralidade": Database["public"]['Enums']["lateralidade"] | null,"liner": string | null,"medidas_ml": string | null,"nome_na_ortese": boolean,"observacoes": string | null,"produto": string | null,"protese_lado": string | null,"protese_membro": string | null,"protese_nivel": string | null,"tamanho_calcado": string | null,"tamanho_pe": string | null,"tema": string | null,"tipo": Database["public"]['Enums']["tipo_ficha"],"updated_at": string,"updated_by": string | null

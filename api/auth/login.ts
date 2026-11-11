@@ -1,7 +1,8 @@
 import * as z from 'zod/mini'
-import { refreshCookie } from '../_lib/cookies.js'
+import { clearMfaPendingCookie, mfaPendingCookie, refreshCookie } from '../_lib/cookies.js'
 import { assertSameOrigin, clientIp, handler, HttpError, json, readJson } from '../_lib/http.js'
 import { assertNotLimited, rateKey, registerFailure, resetLimit } from '../_lib/rate-limit.js'
+import { verifiedTotp } from '../_lib/mfa.js'
 import { publicClient, toClientSession } from '../_lib/supabase.js'
 
 const Body = z.object({
@@ -32,7 +33,17 @@ export const POST = handler(async (req) => {
   }
 
   await resetLimit([emailKey])
-  return json(toClientSession(data.session), 200, {
-    'Set-Cookie': refreshCookie({ token: data.session.refresh_token, remember }),
-  })
+
+  // Autenticador ativo: a senha sozinha não abre a sessão. Guarda o passo 1 por 5 min
+  // (cookie httpOnly) e pede o código em /api/auth/mfa { acao: 'entrar' }.
+  if (verifiedTotp(data.session.user)) {
+    return json({ mfaRequired: true }, 200, {
+      'Set-Cookie': mfaPendingCookie({ accessToken: data.session.access_token, remember }),
+    })
+  }
+
+  return json(toClientSession(data.session), 200, [
+    ['Set-Cookie', refreshCookie({ token: data.session.refresh_token, remember })],
+    ['Set-Cookie', clearMfaPendingCookie()],
+  ])
 })

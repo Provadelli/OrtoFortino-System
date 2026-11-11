@@ -70,6 +70,13 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 - [x] Indicadores: em produção, entregas da semana, a receber, orçamentos em aberto
 - [x] Próximos prazos e atrasos
 
+**Configurações**
+- [x] Dados da empresa (nome, CNPJ, endereço, telefone, e-mail) usados no PDF e nas telas de entrada
+- [x] Padrões do orçamento novo: validade em dias, condições de pagamento, prazo de entrega e observações
+- [x] Listas da ficha técnica (produtos e especificações sugeridos) com adicionar, reordenar e remover
+- [x] Minha conta: nome exibido e troca de senha
+- [x] Verificação em duas etapas opcional (app autenticador, código de 6 números)
+
 ---
 
 ## Stack
@@ -161,6 +168,8 @@ npm run dev
 | `npm run build` | Build de produção |
 | `npm run preview` | Pré-visualização do build |
 | `npm run lint` | Verificação de código |
+| `npm run user:create` | Cria um usuário da equipe (não há cadastro público) |
+| `npm run user:reset-mfa` | Desativa a verificação em duas etapas de quem perdeu o celular |
 
 ---
 
@@ -225,6 +234,7 @@ orto-fortino/
 O sistema armazena **CPF e dados de saúde**, que são dados sensíveis pela LGPD. Por isso:
 
 - Login obrigatório, sem cadastro público
+- Verificação em duas etapas opcional por usuário; quem ativa só acessa os dados com o código (exigido também no banco, via RLS `aal2`)
 - Row Level Security em todas as tabelas
 - CPF mascarado nas listagens (`***.456.789-**`)
 - Registro de autoria das alterações (`created_at`, `updated_at`, `updated_by`)

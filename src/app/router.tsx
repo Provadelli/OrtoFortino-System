@@ -8,7 +8,6 @@ const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('@/features/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage'))
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'))
-const EmBrevePage = lazy(() => import('@/features/placeholder/EmBrevePage'))
 const NotFoundPage = lazy(() => import('@/features/placeholder/NotFoundPage'))
 const PacientesPage = lazy(() => import('@/features/pacientes/PacientesPage'))
 const PacienteFormPage = lazy(() => import('@/features/pacientes/PacienteFormPage'))
@@ -22,6 +21,7 @@ const OrcamentoPage = lazy(() => import('@/features/orcamentos/OrcamentoPage'))
 const ProdutosPage = lazy(() => import('@/features/produtos/ProdutosPage'))
 const ProdutoFormPage = lazy(() => import('@/features/produtos/ProdutoFormPage'))
 const ImportarProdutosPage = lazy(() => import('@/features/produtos/ImportarProdutosPage'))
+const ConfiguracoesPage = lazy(() => import('@/features/configuracoes/ConfiguracoesPage'))
 
 const clientes = [
   { path: 'clientes', element: <PacientesPage /> },
@@ -48,10 +48,7 @@ const precos = [
   { path: 'tabela-de-precos/:id', element: <ProdutoFormPage /> },
 ]
 
-const emBreve = ['configuracoes'].map((path) => ({
-  path: `${path}/*`,
-  element: <EmBrevePage />,
-}))
+const configuracoes = [{ path: 'configuracoes', element: <ConfiguracoesPage /> }]
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -62,7 +59,7 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <AppShell />,
-        children: [{ index: true, element: <Navigate to="/painel" replace /> }, { path: 'painel', element: <DashboardPage /> }, ...clientes, ...orcamentos, ...precos, ...emBreve],
+        children: [{ index: true, element: <Navigate to="/painel" replace /> }, { path: 'painel', element: <DashboardPage /> }, ...clientes, ...orcamentos, ...precos, ...configuracoes],
       },
     ],
   },

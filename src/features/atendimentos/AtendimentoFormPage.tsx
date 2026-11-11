@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -14,6 +14,7 @@ import { formatBRL } from '@/lib/format'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
+import { useConfiguracoes } from '@/features/configuracoes/api'
 import { toForm, useAtendimento, useSalvarAtendimento } from './api'
 import { CATEGORIAS, ESPECIFICACOES, FORMAS, LATERALIDADES, PAGAMENTO, PRODUTOS, STATUS, TIPOS, type StatusPagamento } from './constants'
 import { PacientePicker } from './PacientePicker'
@@ -52,6 +53,15 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
   const navigate = useNavigate()
   const salvar = useSalvarAtendimento(id)
   const [serverError, setServerError] = useState<string | null>(null)
+  // Sugestões editáveis em Configurações (enquanto carregam, valem as da ficha em papel).
+  const { data: config } = useConfiguracoes()
+  const produtosFicha = config?.ficha_produtos ?? PRODUTOS
+  const especificacoes = useMemo(() => {
+    const lista = config?.ficha_especificacoes ?? ESPECIFICACOES
+    // Uma especificação já marcada continua visível mesmo que tenha saído da lista.
+    const marcadas = (initial.ficha?.especificacoes ?? []).filter((e) => !lista.includes(e))
+    return [...lista, ...marcadas]
+  }, [config, initial])
 
   const form = useForm<AtendimentoForm>({ resolver: zodResolver(atendimentoSchema), defaultValues: initial, mode: 'onTouched' })
   const {
@@ -184,7 +194,7 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
                     {...register('ficha.produto')}
                   />
                   <datalist id="lista-produtos">
-                    {PRODUTOS.map((p) => (
+                    {produtosFicha.map((p) => (
                       <option key={p} value={p}>{p}</option>
                     ))}
                   </datalist>
@@ -194,7 +204,7 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
                 <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
                   <legend className="mb-2 p-0 text-sm font-semibold text-ink">Especificações</legend>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {ESPECIFICACOES.map((e) => (
+                    {especificacoes.map((e) => (
                       <Choice key={e} type="checkbox" label={e} value={e} {...register('ficha.especificacoes')} />
                     ))}
                   </div>

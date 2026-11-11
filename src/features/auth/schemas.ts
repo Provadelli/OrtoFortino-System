@@ -32,3 +32,18 @@ export const resetSchema = z
   .object({ password: passwordRule, confirm: z.string() })
   .check(z.refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'As senhas não são iguais.' }))
 export type ResetInput = z.infer<typeof resetSchema>
+
+/** Código de 6 dígitos do app autenticador (aceita espaços colados do app). */
+export const mfaCodeSchema = z.object({
+  code: z.string().check(z.regex(/^\s*\d{3}\s*\d{3}\s*$/, 'Digite os 6 números que aparecem no app.')),
+})
+export type MfaCodeInput = z.infer<typeof mfaCodeSchema>
+export const limparCodigo = (v: string) => v.replace(/\s+/g, '')
+
+export const trocarSenhaSchema = z
+  .object({ atual: z.string().check(z.minLength(1, 'Informe a senha atual.')), nova: passwordRule, confirmar: z.string() })
+  .check(
+    z.refine((v) => v.nova === v.confirmar, { path: ['confirmar'], message: 'As senhas não são iguais.' }),
+    z.refine((v) => v.nova !== v.atual, { path: ['nova'], message: 'A nova senha precisa ser diferente da atual.' }),
+  )
+export type TrocarSenhaInput = z.infer<typeof trocarSenhaSchema>

@@ -13,12 +13,12 @@ export class AuthError extends Error {
   }
 }
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
+async function post<T>(path: string, body?: unknown, accessToken?: string): Promise<T> {
   const res = await fetch(`/api/auth/${path}`, {
     method: 'POST',
     credentials: 'same-origin',
     cache: 'no-store',
-    headers: { 'Content-Type': 'application/json', ...CSRF_HEADER },
+    headers: { 'Content-Type': 'application/json', ...CSRF_HEADER, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = (await res.json().catch(() => ({}))) as { error?: string } & T
@@ -65,9 +65,39 @@ export function refresh(): Promise<Session | null> {
   return inflight
 }
 
-export async function login(email: string, password: string, remember: boolean) {
-  return accept(await post<Session>('login', { email, password, remember }))
+/** Senha certa: devolve a sessão, ou 'mfa' quando falta o código do autenticador. */
+export async function login(email: string, password: string, remember: boolean): Promise<Session | 'mfa'> {
+  const r = await post<Session | { mfaRequired: true }>('login', { email, password, remember })
+  if ('mfaRequired' in r) return 'mfa'
+  return accept(r)
 }
+
+/** 2º passo do login: o código de 6 dígitos do app autenticador. */
+export async function loginMfa(code: string) {
+  return accept(await post<Session>('mfa', { acao: 'entrar', code }))
+}
+
+/** Chamada em nome do usuário logado (Bearer com o token em memória, renovado se preciso). */
+async function postLogado<T>(path: string, body: unknown): Promise<T> {
+  const s = tokenStore.get()
+  const token = s && s.expiresAt * 1000 - Date.now() > 30_000 ? s.accessToken : (await refresh())?.accessToken
+  if (!token) throw new AuthError('Sua sessão terminou. Entre de novo.', 401)
+  return post<T>(path, body, token)
+}
+
+export type NovoAutenticador = { factorId: string; qrCode: string; secret: string }
+
+export const mfaIniciar = () => postLogado<NovoAutenticador>('mfa', { acao: 'iniciar' })
+export const mfaAtivar = async (factorId: string, code: string) => accept(await postLogado<Session>('mfa', { acao: 'ativar', factorId, code }))
+export const mfaDesativar = async (code: string) => accept(await postLogado<Session>('mfa', { acao: 'desativar', code }))
+
+/** Salva o nome e renova a sessão para o menu mostrar o nome novo. */
+export async function alterarNome(nome: string) {
+  await postLogado('conta', { acao: 'nome', nome })
+  await refresh()
+}
+
+export const alterarSenha = (atual: string, nova: string) => postLogado<{ ok: true }>('conta', { acao: 'senha', atual, nova })
 
 /** Revoga a sessão no servidor e limpa a memória. */
 export async function logout() {

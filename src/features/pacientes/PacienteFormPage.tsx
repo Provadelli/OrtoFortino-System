@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { useFieldArray, useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
+import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams } from 'react-router'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
@@ -13,16 +13,8 @@ import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
 import { toForm, usePaciente, useSalvarPaciente } from './api'
+import { masked } from '@/lib/masked'
 import { ORIGENS, pacienteSchema, pacienteVazio, type PacienteForm } from './schema'
-
-/** Aplica máscara enquanto digita, mantendo o registro do react-hook-form. */
-function masked(reg: UseFormRegisterReturn, format: (v: string) => string): UseFormRegisterReturn {
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    e.target.value = format(e.target.value)
-    return reg.onChange(e)
-  }
-  return { ...reg, onChange: onChange as UseFormRegisterReturn['onChange'] }
-}
 
 export default function PacienteFormPage() {
   const { id } = useParams()

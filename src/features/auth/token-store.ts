@@ -3,7 +3,8 @@
  * reduzindo a superfície de roubo por XSS. O refresh token vive num cookie
  * httpOnly que o JavaScript não consegue ler.
  */
-export type SessionUser = { id: string; email: string; nome: string }
+/** `mfa`: verificação em duas etapas ativa (opcional no modo demonstração). */
+export type SessionUser = { id: string; email: string; nome: string; mfa?: boolean }
 export type Session = { accessToken: string; expiresAt: number; user: SessionUser }
 /** Por que a sessão terminou: saída voluntária, expiração, ou nunca existiu. */
 export type EndReason = 'logout' | 'expired' | null

@@ -1,6 +1,5 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import logo from '@/assets/pdf/logo-orto-fortino.png'
-import { EMPRESA } from '@/lib/empresa'
 import type { DadosPdf } from './dados'
 
 // Paleta da marca (mesmos tons da logo) e do sistema.
@@ -71,7 +70,7 @@ function Campo({ rotulo, children, coluna = false }: { rotulo: string; children:
 
 export function OrcamentoPdf({ d }: { d: DadosPdf }) {
   return (
-    <Document title={`Orçamento ${d.numero}`} author={EMPRESA.nome} subject={`Orçamento ${d.numero}`} creator={EMPRESA.nome} producer={EMPRESA.nome} language="pt-BR">
+    <Document title={`Orçamento ${d.numero}`} author={d.empresa.nome} subject={`Orçamento ${d.numero}`} creator={d.empresa.nome} producer={d.empresa.nome} language="pt-BR">
       {/* Sem lineHeight: na página ele some com o número da página (bug da biblioteca); a Poppins já tem entrelinha ~1,4. */}
       <Page size="A4" style={s.page}>
         <View style={s.header}>
@@ -177,8 +176,8 @@ export function OrcamentoPdf({ d }: { d: DadosPdf }) {
         </View>
 
         <View style={s.rodape} fixed>
-          <Text style={{ fontWeight: 600, color: C.suave }}>{`${EMPRESA.nome} · ${EMPRESA.slogan} · CNPJ ${EMPRESA.cnpj}`}</Text>
-          <Text>{`${EMPRESA.endereco}, ${EMPRESA.cidade} · CEP ${EMPRESA.cep} · ${EMPRESA.telefone}`}</Text>
+          <Text style={{ fontWeight: 600, color: C.suave }}>{d.empresa.linha1}</Text>
+          {d.empresa.linha2 ? <Text>{d.empresa.linha2}</Text> : null}
         </View>
         <Text style={s.pagina} fixed render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
       </Page>
