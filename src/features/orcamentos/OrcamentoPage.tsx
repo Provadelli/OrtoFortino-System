@@ -88,6 +88,7 @@ function OrcamentoView({ id }: { id?: string }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
+            <BaixarPdf o={o} onErro={setErro} />
             {editavel(o.status) && (
               <>
                 <Link to={`/orcamentos/${o.id}/editar`} className={buttonClass('outline')}>
@@ -431,5 +432,35 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
       <dt className="text-[13px] font-semibold text-muted">{label}</dt>
       <dd className="m-0 text-[15px]">{children}</dd>
     </div>
+  )
+}
+
+/** Gera o PDF no navegador (biblioteca carregada só agora) e baixa o arquivo. */
+function BaixarPdf({ o, onErro }: { o: Orcamento; onErro: (msg: string | null) => void }) {
+  const [gerando, setGerando] = useState(false)
+  async function baixar() {
+    onErro(null)
+    setGerando(true)
+    try {
+      const { gerarPdfOrcamento } = await import('./pdf/gerar')
+      const { blob, nome } = await gerarPdfOrcamento(o)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nome
+      document.body.append(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+    } catch {
+      onErro('Não foi possível gerar o PDF. Tente de novo.')
+    } finally {
+      setGerando(false)
+    }
+  }
+  return (
+    <Button variant="outline" loading={gerando} onClick={() => void baixar()}>
+      Baixar PDF
+    </Button>
   )
 }

@@ -101,7 +101,7 @@ export function useOrcamento(id: string | undefined) {
       const { data, error } = await db()
         .from('orcamentos')
         .select(
-          '*, pacientes(id, nome, data_nascimento, telefone), orcamento_itens(id, ordem, produto_id, tipo, secao, descricao, detalhe, quantidade, unidade, preco_unitario, total, produtos(preco, ativo))',
+          '*, pacientes(id, nome, cpf, data_nascimento, telefone, responsaveis(nome, cpf, telefone, parentesco, principal)), orcamento_itens(id, ordem, produto_id, tipo, secao, descricao, detalhe, quantidade, unidade, preco_unitario, total, produtos(preco, ativo))',
         )
         .eq('id', id!)
         .order('ordem', { referencedTable: 'orcamento_itens' })

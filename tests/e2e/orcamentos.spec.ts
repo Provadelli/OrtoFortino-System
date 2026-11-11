@@ -1,3 +1,4 @@
+import { copyFileSync, readFileSync } from 'node:fs'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page, type Route } from '@playwright/test'
 import { mockAuth } from './fixtures'
@@ -39,7 +40,7 @@ function orcamento(status: string) {
     aprovado_em: null,
     created_at: '2026-11-10T12:00:00Z',
     updated_at: '2026-11-10T12:00:00Z',
-    pacientes: PACIENTE,
+    pacientes: { ...PACIENTE, cpf: '52998224725', responsaveis: [{ nome: 'Marina Ribeiro', cpf: '11144477735', telefone: '21981180919', parentesco: 'Mãe', principal: true }] },
     orcamento_itens: [
       { id: 'i1', ordem: 1, produto_id: 'p-afo', tipo: 'base', secao: 'Órteses', descricao: 'AFO articulada', detalhe: 'tema dinossauros', quantidade: '1.00', unidade: 'par', preco_unitario: '1250.00', total: '1250.00', produtos: { preco: '1250.00', ativo: true } },
       { id: 'i2', ordem: 2, produto_id: 'p-tira', tipo: 'adicional', secao: 'Adicionais', descricao: 'Tira valgo', detalhe: null, quantidade: '1.00', unidade: 'un', preco_unitario: '80.00', total: '80.00', produtos: { preco: '80.00', ativo: true } },
@@ -240,4 +241,19 @@ test('sem rolagem horizontal da página no celular', async ({ page, isMobile }) 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow, path).toBeLessThanOrEqual(0)
   }
+})
+
+test('baixa o PDF do orçamento com o nome do arquivo certo', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  await mockDb(page)
+  await page.goto(`/orcamentos/${ID}`)
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Baixar PDF' }).click()
+  const arquivo = await download
+  expect(arquivo.suggestedFilename()).toBe('ORC-2026-0012 - Helena Ribeiro.pdf')
+  const caminho = await arquivo.path()
+  const pdf = readFileSync(caminho)
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-')
+  expect(pdf.length).toBeGreaterThan(20_000) // com logo e fontes embutidas
+  if (process.env.PDF_OUT) copyFileSync(caminho, process.env.PDF_OUT)
 })

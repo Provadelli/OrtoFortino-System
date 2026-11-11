@@ -58,6 +58,8 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: true,
       assetsInlineLimit: 0,
       sourcemap: false,
+      // O gerador de PDF (~1,2 MB) só é baixado ao clicar em "Baixar PDF" (import dinâmico).
+      chunkSizeWarningLimit: 1300,
     },
     server: { port: 5173, strictPort: true },
     preview: { port: 4173, strictPort: true },
