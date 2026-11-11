@@ -2,6 +2,7 @@ import * as z from 'zod/mini'
 import { refreshCookie } from '../_lib/cookies.js'
 import { assertSameOrigin, clientIp, handler, HttpError, json, readJson } from '../_lib/http.js'
 import { assertNotLimited, rateKey, registerFailure } from '../_lib/rate-limit.js'
+import { updatePasswordAs, verifiedTotp } from '../_lib/mfa.js'
 import { adminClient, publicClient, toClientSession } from '../_lib/supabase.js'
 import { passwordRule } from '../../src/features/auth/schemas.js'
 
@@ -45,13 +46,21 @@ export const POST = handler(async (req) => {
     throw await fail()
   }
 
-  const admin = adminClient()
-  const upd = await admin.auth.admin.updateUserById(session.user.id, { password })
-  if (upd.error) throw new HttpError(400, 'Não foi possível salvar a nova senha.')
-  // Derruba sessões antigas (ex.: se a senha anterior vazou).
-  await admin.auth.admin.signOut(session.access_token, 'others')
+  // Troca como o próprio usuário: a sessão de recuperação continua valendo e as antigas
+  // (ex.: se a senha anterior vazou) são encerradas pelo próprio Auth.
+  try {
+    await updatePasswordAs(session.access_token, password)
+    // Quem tem autenticador ativo ainda precisa do código: entra de novo com a senha nova.
+    if (verifiedTotp(session.user)) return json({ ok: true, relogin: true })
+    return json(toClientSession(session), 200, {
+      'Set-Cookie': refreshCookie({ token: session.refresh_token, remember: false }),
+    })
+  } catch (err) {
+    if (err instanceof HttpError) throw err
+  }
 
-  return json(toClientSession(session), 200, {
-    'Set-Cookie': refreshCookie({ token: session.refresh_token, remember: false }),
-  })
+  // Último recurso (ex.: o Auth exigir aal2): troca pelo admin, que encerra todas as sessões.
+  const upd = await adminClient().auth.admin.updateUserById(session.user.id, { password })
+  if (upd.error) throw new HttpError(400, 'Não foi possível salvar a nova senha.')
+  return json({ ok: true, relogin: true })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { clearMfaPendingCookie, clearRefreshCookie, mfaPendingCookie, readMfaPendingCookie, readRefreshCookie, refreshCookie } from '../../api/_lib/cookies'
-import { assertSameOrigin, HttpError } from '../../api/_lib/http'
+import { assertSameOrigin, HttpError, json } from '../../api/_lib/http'
 import { jwtClaims, qrDataUri, sessionSatisfiesMfa, verifiedTotp } from '../../api/_lib/mfa'
 import { rateKey } from '../../api/_lib/rate-limit'
 
@@ -82,5 +82,21 @@ describe('rate limit', () => {
     const k = rateKey('login:email', 'Equipe@OrtoFortino.com.br')
     expect(k).not.toContain('ortofortino')
     expect(k).toBe(rateKey('login:email', 'equipe@ortofortino.com.br'))
+  })
+})
+
+describe('resposta JSON', () => {
+  it('envia vários Set-Cookie quando os headers vêm em lista', () => {
+    const res = json({ ok: true }, 200, [
+      ['Set-Cookie', 'a=1; Path=/'],
+      ['Set-Cookie', 'b=2; Path=/'],
+    ])
+    expect(res.headers.getSetCookie()).toEqual(['a=1; Path=/', 'b=2; Path=/'])
+    expect(res.headers.get('cache-control')).toBe('no-store')
+  })
+  it('aceita objeto e permite sobrescrever o padrão', () => {
+    const res = json({}, 200, { 'Set-Cookie': 'a=1', 'Cache-Control': 'public, max-age=300' })
+    expect(res.headers.getSetCookie()).toEqual(['a=1'])
+    expect(res.headers.get('cache-control')).toBe('public, max-age=300')
   })
 })

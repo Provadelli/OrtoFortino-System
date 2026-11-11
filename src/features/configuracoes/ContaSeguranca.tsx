@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/Button'
 import { Field, PasswordField } from '@/components/ui/Field'
 import { Section } from '@/components/ui/FormControls'
@@ -79,6 +80,7 @@ function NomeForm({ nome }: { nome: string }) {
 }
 
 function SenhaForm({ email }: { email: string }) {
+  const navigate = useNavigate()
   const [ok, setOk] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const {
@@ -93,7 +95,10 @@ function SenhaForm({ email }: { email: string }) {
     setOk(null)
     setErro(null)
     try {
-      await alterarSenha(atual, nova)
+      if ((await alterarSenha(atual, nova)) === 'relogin') {
+        navigate('/login?motivo=senha-alterada', { replace: true })
+        return
+      }
       reset()
       setOk('Senha alterada. Se você estava conectado em outro aparelho, entre de novo por lá.')
     } catch (err) {

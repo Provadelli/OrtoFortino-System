@@ -3,16 +3,20 @@
  */
 const MAX_BODY = 4 * 1024
 
-export const json = (data: unknown, status = 200, headers: HeadersInit = {}) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'X-Content-Type-Options': 'nosniff',
-      ...headers,
-    },
+/** `headers` aceita objeto ou lista de pares (para mais de um Set-Cookie). */
+export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
+  const h = new Headers({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
   })
+  for (const [k, v] of new Headers(headers)) {
+    if (k === 'set-cookie') continue
+    h.set(k, v)
+  }
+  for (const c of new Headers(headers).getSetCookie()) h.append('Set-Cookie', c)
+  return new Response(JSON.stringify(data), { status, headers: h })
+}
 
 export class HttpError extends Error {
   status: number

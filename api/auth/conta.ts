@@ -1,8 +1,10 @@
 import * as z from 'zod/mini'
 import { requireUser } from '../_lib/auth.js'
 import { assertSameOrigin, handler, HttpError, json, readJson } from '../_lib/http.js'
+import { refreshCookie, readRefreshCookie } from '../_lib/cookies.js'
+import { updatePasswordAs, verifiedTotp } from '../_lib/mfa.js'
 import { assertNotLimited, rateKey, registerFailure, resetLimit } from '../_lib/rate-limit.js'
-import { adminClient, publicClient } from '../_lib/supabase.js'
+import { adminClient, publicClient, toClientSession } from '../_lib/supabase.js'
 import { passwordRule } from '../../src/features/auth/schemas.js'
 
 /**
@@ -39,12 +41,35 @@ export const POST = handler(async (req) => {
     await registerFailure([{ key, max: 5, windowSec: 15 * 60, lockSec: 15 * 60 }])
     throw new HttpError(400, 'A senha atual não confere.')
   }
-  await admin.auth.admin.signOut(check.data.session.access_token, 'local')
+  const conferencia = check.data.session
   await resetLimit([key])
 
+  // 1º) Como o próprio usuário: mantém esta sessão e encerra as dos outros aparelhos
+  //     (inclusive a sessão de conferência acima).
+  try {
+    await updatePasswordAs(accessToken, body.nova)
+    return json({ ok: true })
+  } catch (err) {
+    if (err instanceof HttpError) throw err
+  }
+
+  // 2º) Sessão aberta há mais de 24 h exige reautenticação. Sem autenticador, a sessão de
+  //     conferência (recém-aberta com a senha atual) faz a troca e passa a ser a sessão do usuário.
+  if (!verifiedTotp(user)) {
+    try {
+      await updatePasswordAs(conferencia.access_token, body.nova)
+      const remember = readRefreshCookie(req)?.remember ?? false
+      return json({ ok: true, session: toClientSession(conferencia) }, 200, {
+        'Set-Cookie': refreshCookie({ token: conferencia.refresh_token, remember }),
+      })
+    } catch (err) {
+      if (err instanceof HttpError) throw err
+    }
+  }
+
+  // 3º) Último recurso: troca pelo admin, que encerra todas as sessões; o usuário entra de novo.
+  await admin.auth.admin.signOut(conferencia.access_token, 'local').catch(() => undefined)
   const upd = await admin.auth.admin.updateUserById(user.id, { password: body.nova })
   if (upd.error) throw new HttpError(400, 'Não foi possível salvar a nova senha. Tente outra.')
-  // Se a senha antiga vazou, quem a usou em outro aparelho perde o acesso.
-  await admin.auth.admin.signOut(accessToken, 'others')
-  return json({ ok: true })
+  return json({ ok: true, relogin: true })
 })

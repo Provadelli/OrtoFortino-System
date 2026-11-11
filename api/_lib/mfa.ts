@@ -32,7 +32,7 @@ export const verifiedTotp = (user: Pick<User, 'factors'> | null | undefined) =>
 export const sessionSatisfiesMfa = (user: Pick<User, 'factors'>, accessToken: string) =>
   !verifiedTotp(user) || jwtClaims(accessToken).aal === 'aal2'
 
-async function gotrue<T>(path: string, accessToken: string, init: { method: 'POST' | 'DELETE'; body?: unknown }): Promise<T> {
+async function gotrue<T>(path: string, accessToken: string, init: { method: 'POST' | 'PUT' | 'DELETE'; body?: unknown }): Promise<T> {
   const res = await fetch(`${env('SUPABASE_URL')}/auth/v1${path}`, {
     method: init.method,
     headers: {
@@ -88,3 +88,19 @@ export async function verifyTotp(accessToken: string, factorId: string, code: st
 
 /** O QR code vem como data URI de SVG; versões antigas do Auth mandavam o SVG puro. */
 export const qrDataUri = (qr: string) => (qr.startsWith('data:') ? qr : `data:image/svg+xml;utf8,${encodeURIComponent(qr)}`)
+
+/**
+ * Troca a senha como o próprio usuário (PUT /user com o token dele).
+ * Diferente da troca pelo admin, mantém a sessão de quem trocou e encerra as dos outros aparelhos.
+ * Pode falhar com reauthentication_needed (sessão com mais de 24 h e "secure password change" ligado).
+ */
+export async function updatePasswordAs(accessToken: string, password: string) {
+  try {
+    await gotrue('/user', accessToken, { method: 'PUT', body: { password } })
+  } catch (err) {
+    if (err instanceof GoTrueError && (err.code === 'same_password' || err.code === 'weak_password')) {
+      throw new HttpError(400, err.code === 'same_password' ? 'A nova senha precisa ser diferente da atual.' : 'Senha fraca. Use 12+ caracteres, com letras e números.')
+    }
+    throw err
+  }
+}

@@ -97,7 +97,17 @@ export async function alterarNome(nome: string) {
   await refresh()
 }
 
-export const alterarSenha = (atual: string, nova: string) => postLogado<{ ok: true }>('conta', { acao: 'senha', atual, nova })
+/** Troca a senha. Devolve 'relogin' quando todas as sessões caíram e é preciso entrar de novo. */
+export async function alterarSenha(atual: string, nova: string): Promise<'ok' | 'relogin'> {
+  const r = await postLogado<{ ok: true; session?: Session; relogin?: boolean }>('conta', { acao: 'senha', atual, nova })
+  if (r.session) accept(r.session)
+  if (r.relogin) {
+    clearTimeout(refreshTimer)
+    tokenStore.set(null, 'logout')
+    return 'relogin'
+  }
+  return 'ok'
+}
 
 /** Revoga a sessão no servidor e limpa a memória. */
 export async function logout() {
@@ -112,8 +122,11 @@ export function forgotPassword(email: string) {
 
 export type RecoveryProof = { tokenHash: string } | { accessToken: string; refreshToken: string }
 
-export async function resetPassword(proof: RecoveryProof, password: string) {
-  return accept(await post<Session>('reset', { ...proof, password }))
+/** Devolve a sessão aberta, ou 'relogin' quando é preciso entrar de novo (ex.: autenticador ativo). */
+export async function resetPassword(proof: RecoveryProof, password: string): Promise<Session | 'relogin'> {
+  const r = await post<Session | { relogin: true }>('reset', { ...proof, password })
+  if ('relogin' in r) return 'relogin'
+  return accept(r)
 }
 
 // Ao voltar para a aba depois de muito tempo (timer congelado), renova se preciso.

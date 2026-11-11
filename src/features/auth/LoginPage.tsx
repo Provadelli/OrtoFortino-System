@@ -19,6 +19,7 @@ export default function LoginPage() {
   const next = safeNext(params.get('next'))
   const [serverError, setServerError] = useState<string | null>(null)
   const expired = params.get('motivo') === 'sessao-expirada'
+  const senhaAlterada = params.get('motivo') === 'senha-alterada'
   // Quem ativou o autenticador passa por uma 2ª etapa: o código de 6 dígitos.
   const [etapa, setEtapa] = useState<'senha' | 'codigo'>('senha')
 
@@ -90,6 +91,7 @@ export default function LoginPage() {
         </div>
 
         {expired && !serverError && <FormAlert tone="success">Sua sessão terminou. Entre de novo para continuar.</FormAlert>}
+        {senhaAlterada && !serverError && <FormAlert tone="success">Senha alterada. Entre com a nova senha.</FormAlert>}
         {serverError && <FormAlert>{serverError}</FormAlert>}
 
         <Field

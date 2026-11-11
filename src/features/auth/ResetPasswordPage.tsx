@@ -40,8 +40,8 @@ export default function ResetPasswordPage() {
     setError(null)
     try {
       if (!proof) throw new Error('sem prova')
-      await resetPassword(proof, password)
-      navigate('/painel', { replace: true })
+      if ((await resetPassword(proof, password)) === 'relogin') navigate('/login?motivo=senha-alterada', { replace: true })
+      else navigate('/painel', { replace: true })
     } catch {
       setError('Este link expirou ou já foi usado. Peça um novo link de recuperação.')
     }

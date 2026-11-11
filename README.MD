@@ -223,7 +223,7 @@ orto-fortino/
 | 4 | Tabela de preços editável | ✅ |
 | 5 | Orçamentos | ✅ |
 | 6 | PDF do orçamento | ✅ |
-| 7 | Configurações e ajustes | ⬜ |
+| 7 | Configurações e ajustes | ✅ |
 
 **Depois do MVP:** PDF da ficha de montagem, envio por WhatsApp/e-mail, anexos (receitas, fotos) e relatórios de faturamento.
 
