@@ -1,14 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { formatMoneyInput, normalizeSearch, todayIso } from '@/lib/br'
 import { db } from '@/lib/supabase'
-import type { FiltroOrcamento, StatusOrcamento } from './constants'
+import type { StatusOrcamento } from './constants'
 import { toPayload, type OrcamentoForm } from './schema'
 
 export const PAGE_SIZE = 25
 
 const keys = {
   all: ['orcamentos'] as const,
-  list: (f: FiltroOrcamento, q: string, page: number) => ['orcamentos', 'lista', f, q, page] as const,
+  list: (f: string[], q: string, page: number) => ['orcamentos', 'lista', [...f].sort().join(','), q, page] as const,
   one: (id: string) => ['orcamentos', 'um', id] as const,
   doPaciente: (id: string) => ['orcamentos', 'paciente', id] as const,
   doAtendimento: (id: string) => ['orcamentos', 'atendimento', id] as const,
@@ -24,9 +24,10 @@ function invalidar(qc: QueryClient, extra: ('atendimentos' | 'produtos')[] = [])
 const LISTA_COLS = 'id, numero, status, data_emissao, validade, total, versao, updated_at'
 const num = (v: unknown) => Number(v) // numeric pode chegar como string
 
-export function useOrcamentos(filtro: FiltroOrcamento, q: string, page: number) {
+/** Lista com filtros combináveis: situações entre si somam (OU); "vencidos" restringe (E). Sem filtros = todos. */
+export function useOrcamentos(filtros: string[], q: string, page: number) {
   return useQuery({
-    queryKey: keys.list(filtro, q, page),
+    queryKey: keys.list(filtros, q, page),
     placeholderData: keepPreviousData,
     queryFn: async () => {
       let query = db().from('orcamentos').select(`${LISTA_COLS}, pacientes!inner(id, nome, nome_busca)`, { count: 'exact' })
@@ -34,17 +35,11 @@ export function useOrcamentos(filtro: FiltroOrcamento, q: string, page: number) 
       // Com número ("0012", "ORC-2026-0012") busca pelo número; senão, pelo nome do paciente.
       if (/\d/.test(busca)) query = query.ilike('numero', `%${busca.replace(/[%_\\]/g, '')}%`)
       else if (busca) query = query.like('pacientes.nome_busca', `%${normalizeSearch(busca).replace(/[%_\\]/g, '')}%`)
-      switch (filtro) {
-        case 'abertos':
-          query = query.in('status', ['rascunho', 'enviado'])
-          break
-        case 'aprovados':
-          query = query.eq('status', 'aprovado')
-          break
-        case 'recusados':
-          query = query.eq('status', 'recusado')
-          break
-      }
+      const situacoes = filtros.filter((f): f is StatusOrcamento => ['rascunho', 'enviado', 'aprovado', 'recusado'].includes(f))
+      if (filtros.includes('vencidos')) {
+        const abertas = (situacoes.length ? situacoes : ['rascunho', 'enviado']).filter((x) => x === 'rascunho' || x === 'enviado')
+        query = query.in('status', abertas.length ? abertas : ['__nenhum__' as StatusOrcamento]).lt('validade', todayIso())
+      } else if (situacoes.length) query = query.in('status', situacoes)
       const { data, error, count } = await query
         .order('ano', { ascending: false })
         .order('sequencial', { ascending: false })

@@ -74,6 +74,7 @@ async function mockDb(page: Page, { vazio = false } = {}) {
   await page.route('**/rest/v1/orcamentos*', (r) =>
     json(r, new URL(r.request().url()).searchParams.has('atendimento_id') ? [{ id: 'o9', numero: 'ORC-2026-0009' }] : []),
   )
+  let urlLista = ''
   await page.route('**/rest/v1/atendimentos*', async (r) => {
     const req = r.request()
     if (req.method() === 'PATCH') {
@@ -85,10 +86,11 @@ async function mockDb(page: Page, { vazio = false } = {}) {
       const um = req.headers()['accept']?.includes('vnd.pgrst.object') ? ATENDIMENTO : [ATENDIMENTO]
       return json(r, um)
     }
+    urlLista = url.search
     const rows = vazio ? [] : [ATENDIMENTO]
     return json(r, rows, rows.length)
   })
-  return { salvo: () => salvo, patch: () => patch }
+  return { salvo: () => salvo, patch: () => patch, urlLista: () => urlLista }
 }
 
 async function axe(page: Page) {
@@ -102,22 +104,45 @@ test('lista vazia convida a abrir atendimento', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
   await mockDb(page, { vazio: true })
   await page.goto('/atendimentos')
-  await expect(page.getByText('Nenhum atendimento aqui')).toBeVisible()
+  await expect(page.getByText('Nenhum atendimento ainda')).toBeVisible()
   await axe(page)
 })
 
 test('lista mostra status, atraso e pagamento parcial', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
-  await mockDb(page)
+  const db = await mockDb(page)
   await page.goto('/atendimentos')
   const linha = page.getByRole('row', { name: /Helena Ribeiro/ })
   await expect(linha.getByText('Em produção')).toBeVisible()
   await expect(linha.getByText('Atrasado')).toBeVisible()
   await expect(linha.getByText('Parcial')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Em andamento' })).toHaveAttribute('aria-current', 'page')
+  // Sem filtros, a lista traz todos os atendimentos.
+  await expect.poll(() => decodeURIComponent(db.urlLista())).not.toContain('status=')
   await axe(page)
-  await page.getByRole('link', { name: 'Atrasados' }).click()
-  await expect(page).toHaveURL(/filtro=atrasados/)
+
+  // Botão "Filtros" abre as opções; cada filtro vira uma etiqueta removível.
+  const botao = page.getByRole('button', { name: 'Filtros' })
+  await expect(botao).toHaveAttribute('aria-expanded', 'false')
+  await botao.click()
+  await expect(botao).toHaveAttribute('aria-expanded', 'true')
+  await page.getByRole('group', { name: 'Prazo de entrega' }).getByRole('button', { name: 'Atrasados' }).click()
+  await expect(page).toHaveURL(/f=atrasados/)
+  await expect.poll(() => decodeURIComponent(db.urlLista())).toContain('prazo_entrega=lt.')
+  await page.getByRole('group', { name: 'Pagamento' }).getByRole('button', { name: 'Parcial' }).click()
+  await expect(page.getByRole('button', { name: /Filtros.*2 ativos/ })).toBeVisible()
+  await expect.poll(() => decodeURIComponent(db.urlLista())).toContain('pagamento_status=in.(parcial)')
+  await axe(page)
+  await page.getByRole('button', { name: 'Remover filtro Atrasados' }).click()
+  await expect(page.getByRole('button', { name: 'Remover filtro Atrasados' })).toHaveCount(0)
+  await page.getByRole('button', { name: /Limpar filtros/ }).click()
+  await expect(page).not.toHaveURL(/f=/)
+})
+
+test('link antigo do painel (?filtro=atrasados) já abre filtrado', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  await mockDb(page)
+  await page.goto('/atendimentos?filtro=atrasados')
+  await expect(page.getByRole('button', { name: 'Remover filtro Atrasados' })).toBeVisible()
 })
 
 test('detalhe mostra ficha técnica e avança o status', async ({ page }) => {
@@ -177,7 +202,20 @@ test('novo atendimento: escolhe paciente, preenche ficha e salva', async ({ page
   await page.getByLabel('Valor pago (R$)').fill('500')
   await expect(page.getByLabel('Data do pagamento')).not.toHaveValue('') // pago informado: data de hoje
   await expect(page.getByText(/falta R\$\s*750,00/)).toBeVisible()
+
+  // Forma de pagamento separada em À vista / Cartão / Outros; crédito abre as parcelas.
+  await expect(page.getByRole('group', { name: 'Cartão' }).getByRole('radio')).toHaveCount(2)
+  await expect(page.getByLabel('Parcelas')).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Cartão de crédito' }).check()
+  await expect(page.getByLabel('Parcelas')).toHaveValue('1')
+  await page.getByLabel('Parcelas').selectOption('3')
+  await expect(page.getByText(/3 parcelas de R\$\s*416,67/)).toBeVisible()
   await axe(page)
+  // Débito não parcela.
+  await page.getByRole('radio', { name: 'Cartão de débito' }).check()
+  await expect(page.getByLabel('Parcelas')).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Cartão de crédito' }).check()
+  await page.getByLabel('Parcelas').selectOption('3')
 
   await page.getByRole('button', { name: 'Abrir atendimento' }).click()
   await expect(page).toHaveURL(new RegExp(`/atendimentos/${ATENDIMENTO.id}$`))
@@ -185,7 +223,16 @@ test('novo atendimento: escolhe paciente, preenche ficha e salva', async ({ page
 
   const body = db.salvo() as { p_id: string | null; p_dados: Record<string, unknown>; p_ficha: Record<string, unknown> }
   expect(body.p_id).toBeNull()
-  expect(body.p_dados).toMatchObject({ paciente_id: PACIENTE.id, valor: 1250, valor_pago: 500, categoria: 'confeccao', status: 'em_producao', descricao: 'AFO articulada bilateral' })
+  expect(body.p_dados).toMatchObject({
+    paciente_id: PACIENTE.id,
+    valor: 1250,
+    valor_pago: 500,
+    categoria: 'confeccao',
+    status: 'em_producao',
+    descricao: 'AFO articulada bilateral',
+    pagamento_forma: 'credito',
+    pagamento_parcelas: '3',
+  })
   expect(String(body.p_dados.prazo_entrega)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   expect(body.p_ficha).toMatchObject({ tipo: 'ortese', lateralidade: 'bilateral', produto: 'AFO articulada', especificacoes: ['Tira valgo'] })
 })

@@ -38,7 +38,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaProps>(func
         rows={rows}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={cn(controlBase, 'min-h-[96px] resize-y py-3 leading-relaxed', error ? 'border-late-fg' : 'border-field hover:border-[#b5cbbf]', className)}
+        className={cn(controlBase, 'min-h-[96px] resize-y py-3 leading-relaxed', error ? 'border-late-fg' : 'border-field hover:border-field-hover', className)}
         {...rest}
       />
       {hint && (
@@ -66,7 +66,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectProps>(function S
         id={fid}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${fid}-erro` : undefined}
-        className={cn(controlBase, 'h-[50px] cursor-pointer appearance-none bg-[length:20px] bg-[right_12px_center] bg-no-repeat pr-10 select-chevron', error ? 'border-late-fg' : 'border-field hover:border-[#b5cbbf]', className)}
+        className={cn(controlBase, 'h-[50px] cursor-pointer appearance-none bg-[length:20px] bg-[right_12px_center] bg-no-repeat pr-10 select-chevron', error ? 'border-late-fg' : 'border-field hover:border-field-hover', className)}
         {...rest}
       >
         {children}
@@ -96,7 +96,7 @@ export const Choice = forwardRef<HTMLInputElement, ChoiceProps>(function Choice(
     <label
       className={cn(
         'relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-field border-[1.5px] border-field bg-white px-4 text-[15px] font-medium text-ink transition-colors',
-        'hover:border-[#b5cbbf] has-[:checked]:border-primary has-[:checked]:bg-prod-bg has-[:checked]:text-prod-fg has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-mint',
+        'hover:border-field-hover has-[:checked]:border-primary has-[:checked]:bg-prod-bg has-[:checked]:text-prod-fg has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary',
         className,
       )}
     >

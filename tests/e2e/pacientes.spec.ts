@@ -25,19 +25,20 @@ const PACIENTE = {
 /** Simula o PostgREST do Supabase. */
 async function mockDb(page: Page, { vazio = false } = {}) {
   let salvo: unknown = null
-  await page.route('**/rest/v1/rpc/buscar_pacientes', (r) =>
-    r.fulfill({
+  let busca: Record<string, unknown> = {}
+  await page.route('**/rest/v1/rpc/buscar_pacientes', (r) => {
+    busca = r.request().postDataJSON()
+    return r.fulfill({
       json: vazio
         ? []
         : [{ ...PACIENTE, cpf_mascarado: '***.982.247-**', responsavel: 'Marta Ribeiro', total: 1 }],
-    }),
-  )
+    })
+  })
   await page.route('**/rest/v1/rpc/salvar_paciente', async (r) => {
     salvo = r.request().postDataJSON()
     return r.fulfill({ json: PACIENTE.id })
   })
   await page.route('**/rest/v1/pacientes*', (r) => r.fulfill({ json: PACIENTE }))
-  await page.route('**/rest/v1/rpc/sugestoes_paciente', (r) => r.fulfill({ json: { origens: ['Clínica Movimento', 'APAE Nova Iguaçu'], medicos: ['Dra. Ana Souza'] } }))
   await page.route('https://viacep.com.br/ws/*/json/', (r) => {
     const cep = new URL(r.request().url()).pathname.split('/')[2]
     if (cep === '01310100') return r.fulfill({ json: { cep: '01310-100', logradouro: 'Avenida Paulista', bairro: 'Bela Vista', localidade: 'São Paulo', uf: 'SP' } })
@@ -45,7 +46,7 @@ async function mockDb(page: Page, { vazio = false } = {}) {
   })
   await page.route('**/rest/v1/atendimentos*', (r) => r.fulfill({ json: [] }))
   await page.route('**/rest/v1/orcamentos*', (r) => r.fulfill({ json: [] }))
-  return { salvo: () => salvo }
+  return { salvo: () => salvo, busca: () => busca }
 }
 
 async function axe(page: Page) {
@@ -63,13 +64,24 @@ test('lista vazia convida a cadastrar', async ({ page }) => {
   await axe(page)
 })
 
-test('lista mostra CPF mascarado e leva à ficha', async ({ page }) => {
+test('lista mostra CPF mascarado, filtra e leva à ficha', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
-  await mockDb(page)
+  const db = await mockDb(page)
   await page.goto('/clientes')
   await expect(page.getByRole('cell', { name: '***.982.247-**' })).toBeVisible()
   await expect(page.getByText('52998224725')).toHaveCount(0)
   await axe(page)
+
+  // Filtros de origem e idade vão para a busca; sem filtros, aparecem todos.
+  expect(db.busca()).not.toHaveProperty('origens')
+  await page.getByRole('button', { name: 'Filtros' }).click()
+  await page.getByRole('button', { name: 'Clínica' }).click()
+  await page.getByRole('button', { name: 'Menores de 18' }).click()
+  await expect.poll(() => db.busca()).toMatchObject({ origens: ['clinica'], faixas: ['menor'] })
+  await axe(page)
+  await page.getByRole('button', { name: /Limpar filtros/ }).click()
+  await expect(page).not.toHaveURL(/f=/) // volta à lista completa (do cache)
+
   await page.getByRole('link', { name: 'Helena Ribeiro' }).click()
   await expect(page).toHaveURL(/\/clientes\/1111/)
   await expect(page.getByRole('heading', { level: 1, name: 'Helena Ribeiro' })).toBeVisible()
@@ -125,13 +137,9 @@ test('cadastro completo com responsável salva e abre a ficha', async ({ page })
   await page.keyboard.type(', 1000')
   await expect(page.getByRole('textbox', { name: 'Endereço' })).toHaveValue('Avenida Paulista, 1000 - Bela Vista')
 
-  // Clínica e médico sugeridos a partir dos cadastros anteriores.
   await page.getByRole('radio', { name: 'Clínica' }).check()
-  await page.getByLabel('Nome da clínica *').fill('apae')
-  await page.getByRole('option', { name: 'APAE Nova Iguaçu' }).click()
-  await expect(page.getByLabel('Nome da clínica *')).toHaveValue('APAE Nova Iguaçu')
-  await page.getByLabel('Médico(a) ou terapeuta').click()
-  await page.getByRole('option', { name: 'Dra. Ana Souza' }).click()
+  await page.getByLabel('Nome da clínica *').fill('APAE Nova Iguaçu')
+  await page.getByLabel('Médico(a) ou terapeuta').fill('Dra. Ana Souza')
   await page.getByRole('button', { name: '+ Adicionar responsável' }).click()
   await page.getByLabel('Nome *', { exact: true }).fill('Marta Ribeiro')
   await page.getByRole('checkbox', { name: /autorizou o uso dos dados/ }).check()

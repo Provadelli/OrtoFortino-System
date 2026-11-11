@@ -5,7 +5,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { FileIcon, SearchIcon } from '@/components/ui/icons'
 import { StatusChip, type Tone } from '@/components/ui/StatusChip'
 import { useSession } from '@/features/auth/useSession'
-import { CATEGORIAS, FORMAS, label, PAGAMENTO, prazoAlerta, statusInfo } from '@/features/atendimentos/constants'
+import { CATEGORIAS, FORMAS_TODAS, label, PAGAMENTO, prazoAlerta, statusInfo } from '@/features/atendimentos/constants'
 import { todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL, formatLongDate, greeting, initials, shortName } from '@/lib/format'
@@ -22,6 +22,7 @@ const avatarBg: Record<Tone, string> = {
   prod: 'bg-prod-bg',
   ready: 'bg-ready-bg',
   draft: 'bg-draft-bg',
+  info: 'bg-info-bg',
 }
 
 /** "2026-11-09" → "09/11" */
@@ -66,7 +67,7 @@ export default function DashboardPage() {
                 type="search"
                 placeholder="Buscar paciente ou CPF"
                 autoComplete="off"
-                className="h-12 w-full min-w-[220px] rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
+                className="h-12 w-full min-w-[220px] rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-field-hover"
               />
             </form>
           </search>
@@ -140,10 +141,10 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
   ]
 
   const etapas = [
-    { label: 'Em contato', n: p.em_contato, color: 'bg-brand-yellow' },
-    { label: 'Em produção', n: p.em_producao, color: 'bg-brand-mint' },
-    { label: 'Pronto para entrega', n: p.prontos, color: 'bg-brand-orange' },
-    { label: 'Entregues no mês', n: p.entregues_mes, color: 'bg-brand-pink' },
+    { label: 'Em contato', n: p.em_contato, color: 'bg-draft-dot' },
+    { label: 'Em produção', n: p.em_producao, color: 'bg-info-dot' },
+    { label: 'Pronto para entrega', n: p.prontos, color: 'bg-ready-dot' },
+    { label: 'Entregues no mês', n: p.entregues_mes, color: 'bg-prod-dot' },
   ]
   const max = Math.max(1, ...etapas.map((e) => e.n))
 
@@ -245,7 +246,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
                           {shortName(g.paciente)}
                         </Link>
                         <span className="text-[13px] text-muted">
-                          {[g.pagamento_forma ? label(FORMAS, g.pagamento_forma) : 'Forma não definida', g.pagamento_detalhe].filter(Boolean).join(' · ')}
+                          {[g.pagamento_forma ? label(FORMAS_TODAS, g.pagamento_forma) : 'Forma não definida', g.pagamento_detalhe].filter(Boolean).join(' · ')}
                         </span>
                       </div>
                       <div className="flex flex-col items-end gap-1">

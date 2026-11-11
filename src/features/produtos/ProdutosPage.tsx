@@ -1,29 +1,47 @@
-import { Fragment, useMemo, useState } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router'
+import { Fragment, useMemo } from 'react'
+import { Link, useLocation } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { SearchIcon, TagIcon } from '@/components/ui/icons'
+import { BarraLista, useBuscaUrl, useFiltrosUrl, type GrupoFiltro } from '@/components/ui/Filtros'
+import { TagIcon } from '@/components/ui/icons'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { normalizeSearch } from '@/lib/br'
-import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useProdutos, type Produto } from './api'
 import { SEM_CATEGORIA, tipoInfo } from './schema'
 
-const FILTROS = [
-  { value: 'ativos', label: 'Ativos' },
-  { value: 'base', label: 'Produtos-base' },
-  { value: 'adicional', label: 'Adicionais' },
-  { value: 'inativos', label: 'Inativos' },
-] as const
-type Filtro = (typeof FILTROS)[number]['value']
-const isFiltro = (v: string | null): v is Filtro => FILTROS.some((f) => f.value === v)
+const GRUPOS_FIXOS: GrupoFiltro[] = [
+  {
+    id: 'situacao',
+    titulo: 'Situação',
+    opcoes: [
+      { valor: 'ativos', rotulo: 'Ativos', tom: 'prod' },
+      { valor: 'inativos', rotulo: 'Inativos', tom: 'draft' },
+    ],
+  },
+  {
+    id: 'tipo',
+    titulo: 'Tipo',
+    opcoes: [
+      { valor: 'base', rotulo: 'Produtos-base', tom: tipoInfo('base').tone },
+      { valor: 'adicional', rotulo: 'Adicionais', tom: tipoInfo('adicional').tone },
+    ],
+  },
+]
+/** Links antigos (?filtro=ativos). */
+const LEGADO: Record<string, string[]> = { ativos: ['ativos'], inativos: ['inativos'], base: ['base'], adicional: ['adicional'] }
+const categoriaDe = (p: Produto) => p.categoria?.trim() || SEM_CATEGORIA
 
-function filtrar(produtos: Produto[], filtro: Filtro, busca: string) {
+/** Dentro de um grupo as opções somam (OU); entre grupos, restringem (E). Sem filtros = todos. */
+function filtrar(produtos: Produto[], filtros: string[], busca: string) {
   const q = normalizeSearch(busca)
+  const situacao = filtros.filter((f) => f === 'ativos' || f === 'inativos')
+  const tipos = filtros.filter((f) => f === 'base' || f === 'adicional')
+  const categorias = filtros.filter((f) => f.startsWith('cat:')).map((f) => f.slice(4))
   return produtos.filter((p) => {
-    if (filtro === 'inativos' ? p.ativo : !p.ativo) return false
-    if ((filtro === 'base' || filtro === 'adicional') && p.tipo !== filtro) return false
+    if (situacao.length && !situacao.includes(p.ativo ? 'ativos' : 'inativos')) return false
+    if (tipos.length && !tipos.includes(p.tipo)) return false
+    if (categorias.length && !categorias.includes(categoriaDe(p))) return false
     if (!q) return true
     return (p.nome_busca ?? normalizeSearch(p.nome)).includes(q) || (p.codigo ?? '').toLowerCase().includes(q) || normalizeSearch(p.categoria ?? '').includes(q)
   })
@@ -41,19 +59,20 @@ function agrupar(produtos: Produto[]) {
 
 export default function ProdutosPage() {
   usePageTitle('Tabela de preços')
-  const [params] = useSearchParams()
   const location = useLocation()
   const notice = (location.state as { notice?: string } | null)?.notice
-  const filtroParam = params.get('filtro')
-  const filtro: Filtro = isFiltro(filtroParam) ? filtroParam : 'ativos'
-  const [busca, setBusca] = useState('')
-
   const { data, isPending, isError, refetch } = useProdutos()
-  const visiveis = useMemo(() => filtrar(data ?? [], filtro, busca), [data, filtro, busca])
+  const gruposFiltro = useMemo<GrupoFiltro[]>(() => {
+    const cats = [...new Set((data ?? []).map(categoriaDe))].sort((a, b) => (a === SEM_CATEGORIA ? 1 : b === SEM_CATEGORIA ? -1 : a.localeCompare(b, 'pt-BR')))
+    return cats.length ? [...GRUPOS_FIXOS, { id: 'categoria', titulo: 'Categoria', opcoes: cats.map((c) => ({ valor: `cat:${c}`, rotulo: c, tom: 'info' as const })) }] : GRUPOS_FIXOS
+  }, [data])
+  const filtros = useFiltrosUrl(gruposFiltro, LEGADO)
+  // A lista é local: filtra na hora com o texto digitado (a URL acompanha com pequeno atraso).
+  const { texto, setTexto } = useBuscaUrl()
+  const busca = texto
+  const visiveis = useMemo(() => filtrar(data ?? [], filtros.ativos, busca), [data, filtros.ativos, busca])
   const grupos = useMemo(() => agrupar(visiveis), [visiveis])
   const total = visiveis.length
-
-  const hrefFiltro = (f: Filtro) => `?${new URLSearchParams({ filtro: f }).toString()}`
 
   return (
     <>
@@ -85,44 +104,14 @@ export default function ProdutosPage() {
         <h2 id="titulo-lista" className="sr-only">
           Lista de produtos
         </h2>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <nav aria-label="Filtrar produtos" className="-mx-1 overflow-x-auto px-1">
-            <ul className="m-0 flex w-max list-none gap-2 p-0">
-              {FILTROS.map((f) => (
-                <li key={f.value}>
-                  <Link
-                    to={hrefFiltro(f.value)}
-                    replace
-                    aria-current={filtro === f.value ? 'page' : undefined}
-                    className={cn(
-                      'inline-flex min-h-11 items-center rounded-full border-[1.5px] px-4 text-[15px] font-semibold no-underline transition-colors',
-                      filtro === f.value ? 'border-primary bg-prod-bg text-prod-fg' : 'border-field-soft text-ink-soft hover:border-[#b5cbbf] hover:text-ink',
-                    )}
-                  >
-                    {f.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <search className="w-full lg:max-w-[340px]">
-            <form className="relative" onSubmit={(e) => e.preventDefault()}>
-              <label htmlFor="busca-produtos" className="sr-only">
-                Buscar por nome, código ou categoria
-              </label>
-              <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
-              <input
-                id="busca-produtos"
-                type="search"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por nome, código ou categoria"
-                autoComplete="off"
-                className="h-12 w-full rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
-              />
-            </form>
-          </search>
-        </div>
+        <BarraLista
+          nome="produtos"
+          busca={{ texto, setTexto, placeholder: 'Buscar por nome, código ou categoria' }}
+          grupos={gruposFiltro}
+          ativos={filtros.ativos}
+          onAlternar={filtros.alternar}
+          onLimpar={filtros.limpar}
+        />
 
         {isError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-field bg-late-bg px-4 py-3 text-late-fg">
@@ -142,7 +131,7 @@ export default function ProdutosPage() {
             ))}
           </div>
         ) : total === 0 ? (
-          <Vazio busca={busca.trim()} filtro={filtro} semProdutos={(data ?? []).length === 0} />
+          <Vazio busca={busca.trim()} filtrado={filtros.ativos.length > 0} semProdutos={(data ?? []).length === 0} />
         ) : (
           // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- área rolável precisa ser alcançável pelo teclado (WCAG 2.1.1)
           <section className="overflow-x-auto overscroll-x-contain" aria-label="Tabela de produtos (role para os lados)" tabIndex={0}>
@@ -198,7 +187,7 @@ export default function ProdutosPage() {
   )
 }
 
-function Vazio({ busca, filtro, semProdutos }: { busca: string; filtro: Filtro; semProdutos: boolean }) {
+function Vazio({ busca, filtrado, semProdutos }: { busca: string; filtrado: boolean; semProdutos: boolean }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-12 text-center animate-fade">
       <div aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-prod-bg text-prod-fg">
@@ -223,7 +212,7 @@ function Vazio({ busca, filtro, semProdutos }: { busca: string; filtro: Filtro; 
           <p className="m-0 max-w-sm text-muted">Confira a grafia ou procure pelo código.</p>
         </>
       ) : (
-        <p className="m-0 text-lg font-semibold">{filtro === 'inativos' ? 'Nenhum produto inativo' : 'Nenhum produto neste filtro'}</p>
+        <p className="m-0 text-lg font-semibold">{filtrado ? 'Nenhum produto com esses filtros' : 'Nenhum produto'}</p>
       )}
     </div>
   )

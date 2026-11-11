@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams } from 'react-router'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { Combobox } from '@/components/ui/Combobox'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, FieldError, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon, CloseIcon } from '@/components/ui/icons'
@@ -14,7 +13,7 @@ import { buscarCep, CepIndisponivel } from '@/lib/cep'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
-import { toForm, usePaciente, useSalvarPaciente, useSugestoesPaciente } from './api'
+import { toForm, usePaciente, useSalvarPaciente } from './api'
 import { masked } from '@/lib/masked'
 import { ORIGENS, pacienteSchema, pacienteVazio, type PacienteForm } from './schema'
 
@@ -60,7 +59,6 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
     getValues,
     formState: { errors, isSubmitting, isDirty },
   } = form
-  const { data: sugestoes } = useSugestoesPaciente()
 
   // CEP → endereço, cidade e UF (ViaCEP). Só preenche o que está vazio ou que o próprio CEP preencheu antes.
   const [cepStatus, setCepStatus] = useState<{ tipo: 'buscando' | 'ok' | 'erro'; texto: string } | null>(null)
@@ -282,48 +280,10 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
         <div className="grid gap-5 sm:grid-cols-2">
           {origem !== 'particular' && (
             <div className="animate-fade">
-              <Controller
-                control={control}
-                name="origem_nome"
-                render={({ field, fieldState }) => (
-                  <Combobox
-                    ref={field.ref}
-                    name={field.name}
-                    label={`${origemNomeLabel} *`}
-                    value={field.value}
-                    placeholder="Escolha ou digite"
-                    error={fieldState.error?.message}
-                    opcoes={(sugestoes?.origens ?? []).map((v) => ({ id: v, rotulo: v }))}
-                    textoLivre
-                    vazio="Nenhum cadastro anterior com esse nome."
-                    onInputChange={field.onChange}
-                    onEscolher={(o) => field.onChange(o.rotulo)}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
+              <Field label={`${origemNomeLabel} *`} autoComplete="off" error={errors.origem_nome?.message} {...register('origem_nome')} />
             </div>
           )}
-          <Controller
-            control={control}
-            name="medico"
-            render={({ field, fieldState }) => (
-              <Combobox
-                ref={field.ref}
-                name={field.name}
-                label="Médico(a) ou terapeuta"
-                value={field.value}
-                placeholder="Escolha ou digite"
-                error={fieldState.error?.message}
-                opcoes={(sugestoes?.medicos ?? []).map((v) => ({ id: v, rotulo: v }))}
-                textoLivre
-                vazio="Nenhum cadastro anterior com esse nome."
-                onInputChange={field.onChange}
-                onEscolher={(o) => field.onChange(o.rotulo)}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
+          <Field label="Médico(a) ou terapeuta" autoComplete="off" error={errors.medico?.message} {...register('medico')} />
         </div>
         <TextareaField label="Diagnóstico" error={errors.diagnostico?.message} {...register('diagnostico')} />
         <TextareaField label="Observações" error={errors.observacoes?.message} {...register('observacoes')} />

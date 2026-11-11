@@ -44,6 +44,7 @@ export const atendimentoSchema = z
     valor: dinheiro,
     valor_pago: dinheiro,
     pagamento_forma: z.string(),
+    pagamento_parcelas: z.string(),
     pagamento_detalhe: texto(120),
     data_pagamento: data,
     observacoes: texto(4000),
@@ -101,6 +102,7 @@ export const atendimentoVazio = (pacienteId: string, hoje: string): AtendimentoF
   valor: '',
   valor_pago: '',
   pagamento_forma: '',
+  pagamento_parcelas: '',
   pagamento_detalhe: '',
   data_pagamento: '',
   observacoes: '',
@@ -126,7 +128,13 @@ function limparFicha(f: FichaForm): FichaForm {
 export function toPayload(v: AtendimentoForm) {
   const { com_ficha, ficha, ...dados } = v
   return {
-    dados: { ...dados, valor: parseBRL(dados.valor), valor_pago: parseBRL(dados.valor_pago) },
+    dados: {
+      ...dados,
+      valor: parseBRL(dados.valor),
+      valor_pago: parseBRL(dados.valor_pago),
+      // Parcelas só valem para crédito e boleto.
+      pagamento_parcelas: (dados.pagamento_forma === 'credito' || dados.pagamento_forma === 'boleto') && dados.pagamento_parcelas ? dados.pagamento_parcelas : '',
+    },
     ficha: com_ficha ? limparFicha(ficha) : null,
   }
 }

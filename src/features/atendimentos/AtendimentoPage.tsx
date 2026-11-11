@@ -10,7 +10,7 @@ import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useOrcamentoDoAtendimento } from '@/features/orcamentos/api'
 import { fichaDe, useAtendimento, useExcluirAtendimento, useMudarStatus } from './api'
-import { CATEGORIAS, FORMAS, label, LATERALIDADES, PAGAMENTO, prazoAlerta, PROXIMO, STATUS, statusInfo, TIPOS, type StatusAtendimento } from './constants'
+import { CATEGORIAS, descreverPagamento, label, LATERALIDADES, PAGAMENTO, prazoAlerta, PROXIMO, STATUS, statusInfo, TIPOS, type StatusAtendimento } from './constants'
 
 const FLUXO = STATUS.filter((s) => s.value !== 'cancelado')
 
@@ -156,7 +156,7 @@ export default function AtendimentoPage() {
               {a.valor > a.valor_pago && <span className="block text-[13px] text-muted">falta {formatBRL(a.valor - a.valor_pago)}</span>}
             </Item>
             <Item label="Forma">
-              {label(FORMAS, a.pagamento_forma)}
+              {descreverPagamento(a.pagamento_forma, a.pagamento_parcelas, a.valor) ?? '—'}
               {a.pagamento_detalhe && <span className="block text-[13px] text-muted">{a.pagamento_detalhe}</span>}
             </Item>
             <Item label="Data do pagamento">{formatIsoDate(a.data_pagamento)}</Item>

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { SearchIcon, UsersIcon } from '@/components/ui/icons'
+import { BarraLista, useBuscaUrl, useFiltrosUrl, type GrupoFiltro } from '@/components/ui/Filtros'
+import { UsersIcon } from '@/components/ui/icons'
 import { StatusChip, type Tone } from '@/components/ui/StatusChip'
 import { ageFrom, formatAge, formatPhone } from '@/lib/br'
 import { cn } from '@/lib/cn'
@@ -9,33 +10,35 @@ import { usePageTitle } from '@/lib/usePageTitle'
 import { PAGE_SIZE, usePacientes } from './api'
 import { origemLabel } from './schema'
 
-const origemTone: Record<string, Tone> = { clinica: 'prod', plano: 'today', particular: 'draft' }
+const origemTone: Record<string, Tone> = { clinica: 'info', plano: 'prod', particular: 'draft' }
+
+const GRUPOS: GrupoFiltro[] = [
+  {
+    id: 'origem',
+    titulo: 'Origem',
+    opcoes: (['clinica', 'plano', 'particular'] as const).map((o) => ({ valor: `origem_${o}`, rotulo: origemLabel(o), tom: origemTone[o] })),
+  },
+  {
+    id: 'idade',
+    titulo: 'Idade',
+    opcoes: [
+      { valor: 'idade_menor', rotulo: 'Menores de 18', tom: 'ready' },
+      { valor: 'idade_adulto', rotulo: 'Adultos', tom: 'draft' },
+      { valor: 'idade_sem_data', rotulo: 'Sem data de nascimento', tom: 'today' },
+    ],
+  },
+]
 
 export default function PacientesPage() {
   usePageTitle('Clientes')
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const notice = (location.state as { notice?: string } | null)?.notice
-  const busca = params.get('busca') ?? ''
   const page = Math.max(0, Number(params.get('pagina') ?? '1') - 1)
-  const [texto, setTexto] = useState(busca)
+  const filtros = useFiltrosUrl(GRUPOS)
+  const { busca, texto, setTexto } = useBuscaUrl()
 
-  // Busca enquanto digita (com pequeno atraso para não consultar a cada tecla)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (texto.trim() === busca) return
-      setParams((p) => {
-        const n = new URLSearchParams(p)
-        if (texto.trim()) n.set('busca', texto.trim())
-        else n.delete('busca')
-        n.delete('pagina')
-        return n
-      }, { replace: true })
-    }, 250)
-    return () => clearTimeout(t)
-  }, [texto, busca, setParams])
-
-  const { data, isPending, isError, refetch, isFetching } = usePacientes(busca, page)
+  const { data, isPending, isError, refetch, isFetching } = usePacientes(busca, page, filtros.ativos)
   const total = data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -72,23 +75,14 @@ export default function PacientesPage() {
         <h2 id="titulo-lista" className="sr-only">
           Lista de pacientes
         </h2>
-        <search>
-          <form className="relative max-w-[480px]" onSubmit={(e) => e.preventDefault()}>
-            <label htmlFor="busca-pacientes" className="sr-only">
-              Buscar por nome ou CPF
-            </label>
-            <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
-            <input
-              id="busca-pacientes"
-              type="search"
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              placeholder="Buscar por nome ou CPF"
-              autoComplete="off"
-              className="h-12 w-full rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
-            />
-          </form>
-        </search>
+        <BarraLista
+          nome="clientes"
+          busca={{ texto, setTexto, placeholder: 'Buscar por nome ou CPF' }}
+          grupos={GRUPOS}
+          ativos={filtros.ativos}
+          onAlternar={filtros.alternar}
+          onLimpar={filtros.limpar}
+        />
 
         {isError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-field bg-late-bg px-4 py-3 text-late-fg">
@@ -100,7 +94,7 @@ export default function PacientesPage() {
         ) : isPending ? (
           <ListSkeleton />
         ) : data.rows.length === 0 ? (
-          <EmptyState busca={busca} />
+          <EmptyState busca={busca} filtrado={filtros.ativos.length > 0} />
         ) : (
           <>
             {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
@@ -118,8 +112,8 @@ export default function PacientesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((p) => (
-                    <tr key={p.id} className="border-t border-line-soft transition-colors hover:bg-surface">
+                  {data.rows.map((p, i) => (
+                    <tr key={p.id} style={{ '--i': Math.min(i, 12) } as CSSProperties} className="border-t border-line-soft transition-colors hover:bg-surface animate-fade stagger">
                       <th scope="row" className="py-3 pr-3 text-left font-normal">
                         <Link to={`/clientes/${p.id}`} className="text-[15px] font-semibold text-ink no-underline hover:text-primary-ink hover:underline">
                           {p.nome}
@@ -162,7 +156,7 @@ export default function PacientesPage() {
   )
 }
 
-function EmptyState({ busca }: { busca: string }) {
+function EmptyState({ busca, filtrado }: { busca: string; filtrado: boolean }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-12 text-center animate-fade">
       <div aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-prod-bg text-prod-fg">
@@ -172,6 +166,11 @@ function EmptyState({ busca }: { busca: string }) {
         <>
           <p className="m-0 text-lg font-semibold">Nenhum paciente encontrado para “{busca}”</p>
           <p className="m-0 max-w-sm text-muted">Confira a grafia ou busque pelo CPF. Se for um paciente novo, cadastre agora.</p>
+        </>
+      ) : filtrado ? (
+        <>
+          <p className="m-0 text-lg font-semibold">Nenhum paciente com esses filtros</p>
+          <p className="m-0 max-w-sm text-muted">Remova algum filtro para ver mais pacientes.</p>
         </>
       ) : (
         <>

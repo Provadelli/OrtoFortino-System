@@ -70,18 +70,23 @@ test('lista agrupa por categoria, filtra e busca sem acento', async ({ page }) =
   const afo = page.getByRole('row', { name: /AFO articulada/ })
   await expect(afo.getByText(/R\$\s1\.250,00/)).toBeVisible()
   await expect(afo.getByText('Produto-base')).toBeVisible()
-  await expect(page.getByText('Palmilha antiga')).toHaveCount(0) // inativo fica fora de "Ativos"
+  await expect(page.getByRole('link', { name: 'Palmilha antiga' })).toBeVisible() // sem filtros, aparecem todos (inclusive inativos)
   await axe(page)
 
-  await page.getByRole('link', { name: 'Adicionais' }).click()
-  await expect(page.getByRole('link', { name: 'Adicionais' })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('button', { name: 'Filtros' }).click()
+  await page.getByRole('group', { name: 'Tipo' }).getByRole('button', { name: 'Adicionais' }).click()
+  await expect(page.getByRole('group', { name: 'Tipo' }).getByRole('button', { name: 'Adicionais' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('link', { name: 'Tira valgo' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'AFO articulada' })).toHaveCount(0)
+  await axe(page)
 
-  await page.getByRole('link', { name: 'Inativos' }).click()
+  await page.getByRole('group', { name: 'Tipo' }).getByRole('button', { name: 'Adicionais' }).click()
+  await page.getByRole('button', { name: 'Inativos', exact: true }).click()
   await expect(page.getByRole('link', { name: 'Palmilha antiga' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'AFO articulada' })).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Ativos', exact: true }).click()
+  await page.getByRole('button', { name: 'Remover filtro Inativos' }).click()
+  await page.getByRole('button', { name: 'Ativos', exact: true }).click()
   await page.getByLabel('Buscar por nome, código ou categoria').fill('ORTESES')
   await expect(page.getByRole('link', { name: 'AFO articulada' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Tira valgo' })).toHaveCount(0)

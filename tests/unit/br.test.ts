@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ageFrom, formatCpf, formatIsoDate, formatMoneyInput, formatPhone, isValidCpf, parseBRL } from '../../src/lib/br'
 import { atendimentoSchema, atendimentoVazio, toPayload as toPayloadAtendimento } from '../../src/features/atendimentos/schema'
+import { descreverPagamento } from '../../src/features/atendimentos/constants'
 import { pacienteSchema, pacienteVazio, toPayload } from '../../src/features/pacientes/schema'
 
 describe('CPF', () => {
@@ -87,5 +88,22 @@ describe('schema do atendimento', () => {
   it('ficha de prótese limpa campos de órtese', () => {
     const p = toPayloadAtendimento({ ...base, ficha: { ...base.ficha, tipo: 'protese', produto: 'x', especificacoes: ['90°'], tema: 'dino' } })
     expect(p.ficha).toMatchObject({ tipo: 'protese', especificacoes: [], tema: '' })
+  })
+  it('parcelas só seguem para crédito e boleto', () => {
+    expect(toPayloadAtendimento({ ...base, pagamento_forma: 'credito', pagamento_parcelas: '3' }).dados.pagamento_parcelas).toBe('3')
+    expect(toPayloadAtendimento({ ...base, pagamento_forma: 'boleto', pagamento_parcelas: '2' }).dados.pagamento_parcelas).toBe('2')
+    expect(toPayloadAtendimento({ ...base, pagamento_forma: 'debito', pagamento_parcelas: '3' }).dados.pagamento_parcelas).toBe('')
+    expect(toPayloadAtendimento({ ...base, pagamento_forma: '', pagamento_parcelas: '3' }).dados.pagamento_parcelas).toBe('')
+  })
+})
+
+describe('forma de pagamento', () => {
+  it('descreve crédito parcelado, à vista e formas antigas', () => {
+    expect(descreverPagamento('credito', 3, 1250)).toMatch(/^Cartão de crédito · 3x de R\$\s416,67$/)
+    expect(descreverPagamento('credito', 1, 1250)).toBe('Cartão de crédito · à vista')
+    expect(descreverPagamento('debito', null, 1250)).toBe('Cartão de débito')
+    expect(descreverPagamento('cartao', null, 100)).toBe('Cartão')
+    expect(descreverPagamento('boleto', 2, 0)).toBe('Boleto · 2x')
+    expect(descreverPagamento(null, null, 0)).toBeNull()
   })
 })

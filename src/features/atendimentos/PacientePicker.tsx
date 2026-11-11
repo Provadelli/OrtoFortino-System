@@ -57,7 +57,7 @@ export function PacientePicker({ value, onChange, error }: { value: string; onCh
           placeholder="Buscar paciente por nome ou CPF"
           autoComplete="off"
           aria-invalid={error ? true : undefined}
-          className="h-12 w-full rounded-field border-[1.5px] border-field bg-white pr-3.5 pl-[42px] text-[15px] text-ink hover:border-[#b5cbbf] aria-invalid:border-late-fg"
+          className="h-12 w-full rounded-field border-[1.5px] border-field bg-white pr-3.5 pl-[42px] text-[15px] text-ink hover:border-field-hover aria-invalid:border-late-fg"
         />
       </div>
       <p className="m-0 text-[13px] text-muted" aria-live="polite">
@@ -68,7 +68,7 @@ export function PacientePicker({ value, onChange, error }: { value: string; onCh
           {rows.slice(0, 8).map((p) => (
             <li key={p.id}>
               {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- o texto do rótulo é o nome do paciente (dinâmico) */}
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-field border border-transparent px-3 py-2 hover:border-line hover:bg-surface has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-brand-mint">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-field border border-transparent px-3 py-2 hover:border-line hover:bg-surface has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-primary">
                 <input type="radio" name={`${id}-paciente`} value={p.id} className="m-0 size-[18px] accent-primary focus-visible:outline-none" onChange={() => onChange(p.id)} />
                 <span className="flex flex-col">
                   <span className="text-[15px] font-semibold">{p.nome}</span>

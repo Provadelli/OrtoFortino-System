@@ -31,6 +31,7 @@
   --color-line-soft: #eef3f0;
   --color-field: #cfdfd7;
   --color-field-soft: #d5e3dc;
+  --color-field-hover: #9fbcae;
 
   /* Status (fundo / texto) */
   --color-late-bg: #fde0ef;
@@ -43,6 +44,16 @@
   --color-ready-fg: #6b5a00;
   --color-draft-bg: #eef1f0;
   --color-draft-fg: #46525a;
+  --color-info-bg: #e4efff;
+  --color-info-fg: #1d4f91;
+
+  /* Bolinhas de status (sempre ao lado de um texto) */
+  --color-late-dot: #e6007e;
+  --color-today-dot: #f7941d;
+  --color-prod-dot: #1f9a6f;
+  --color-ready-dot: #d9ad00;
+  --color-draft-dot: #8a979d;
+  --color-info-dot: #2f6fd0;
 
   --radius-card: 18px;
   --radius-field: 12px;
@@ -54,6 +65,8 @@
   --animate-grow-x: grow-x 900ms var(--ease-out-soft) both;
   --animate-spin-slow: spin 160s linear infinite;
   --animate-shake: shake 360ms ease-in-out;
+  --animate-drop: drop 240ms var(--ease-out-soft) both;
+  --animate-pop: pop 200ms var(--ease-out-soft) both;
 
   @keyframes rise {
     from { opacity: 0; transform: translateY(10px); }
@@ -67,6 +80,14 @@
     from { transform: scaleX(0); }
     to { transform: scaleX(1); }
   }
+  @keyframes drop {
+    from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: none; }
+  }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-6px); }
@@ -78,6 +99,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
     text-rendering: optimizeLegibility;
   }
   body {
@@ -93,11 +115,18 @@
   }
   p { text-wrap: pretty; }
 
-  /* Foco visível consistente (WCAG 2.4.7 / 2.4.11) */
+  /* Foco visível consistente e com contraste ≥ 3:1 (WCAG 2.4.7 / 2.4.11 / 1.4.11) */
   :focus-visible {
-    outline: 3px solid var(--color-brand-mint);
+    outline: 3px solid var(--color-primary);
     outline-offset: 2px;
     border-radius: 6px;
+  }
+
+  /* Movimento suave padrão em controles (cada componente pode refinar) */
+  a, button, summary, [role='option'] {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out-soft);
   }
   input:focus-visible {
     outline-offset: 1px;

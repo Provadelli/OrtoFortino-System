@@ -1,4 +1,5 @@
 import type { Tone } from '@/components/ui/StatusChip'
+import type { GrupoFiltro } from '@/components/ui/Filtros'
 import type { Database } from '@/lib/database.types'
 
 type Enums = Database['public']['Enums']
@@ -18,7 +19,7 @@ export const CATEGORIAS: { value: Categoria; label: string }[] = [
 
 export const STATUS: { value: StatusAtendimento; label: string; tone: Tone }[] = [
   { value: 'em_contato', label: 'Em contato', tone: 'draft' },
-  { value: 'em_producao', label: 'Em produção', tone: 'prod' },
+  { value: 'em_producao', label: 'Em produção', tone: 'info' },
   { value: 'pronto', label: 'Pronto', tone: 'ready' },
   { value: 'entregue', label: 'Entregue', tone: 'prod' },
   { value: 'cancelado', label: 'Cancelado', tone: 'late' },
@@ -40,13 +41,30 @@ export const PAGAMENTO: Record<StatusPagamento, { label: string; tone: Tone }> =
   isento: { label: 'Sem custo', tone: 'draft' },
 }
 
-export const FORMAS: { value: FormaPagamento; label: string }[] = [
-  { value: 'pix', label: 'Pix' },
-  { value: 'dinheiro', label: 'Dinheiro' },
-  { value: 'cartao', label: 'Cartão' },
-  { value: 'boleto', label: 'Boleto' },
-  { value: 'convenio', label: 'Convênio' },
+/** Formas oferecidas no formulário, em grupos (o antigo "cartao" só aparece em registros já salvos). */
+export const FORMAS: { value: FormaPagamento; label: string; grupo: 'vista' | 'cartao' | 'outros' }[] = [
+  { value: 'pix', label: 'Pix', grupo: 'vista' },
+  { value: 'dinheiro', label: 'Dinheiro', grupo: 'vista' },
+  { value: 'credito', label: 'Cartão de crédito', grupo: 'cartao' },
+  { value: 'debito', label: 'Cartão de débito', grupo: 'cartao' },
+  { value: 'boleto', label: 'Boleto', grupo: 'outros' },
+  { value: 'convenio', label: 'Convênio', grupo: 'outros' },
 ]
+/** Todas as formas, inclusive a antiga, para exibir registros existentes. */
+export const FORMAS_TODAS: { value: FormaPagamento; label: string }[] = [...FORMAS, { value: 'cartao', label: 'Cartão' }]
+/** Formas que podem ser parceladas. */
+export const PARCELAVEIS: FormaPagamento[] = ['credito', 'boleto']
+export const MAX_PARCELAS = 12
+
+/** "Cartão de crédito · 3x de R$ 416,67" — texto curto da forma de pagamento. */
+export function descreverPagamento(forma: FormaPagamento | null | undefined, parcelas: number | null | undefined, valor: number) {
+  if (!forma) return null
+  const nome = label(FORMAS_TODAS, forma)
+  if (!PARCELAVEIS.includes(forma) || !parcelas) return nome
+  if (parcelas === 1) return `${nome} · à vista`
+  const cada = valor > 0 ? ` de ${(valor / parcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''
+  return `${nome} · ${parcelas}x${cada}`
+}
 
 export const TIPOS: { value: TipoFicha; label: string }[] = [
   { value: 'ortese', label: 'Órtese' },
@@ -86,14 +104,31 @@ export const ESPECIFICACOES = [
   'Acomodar equino',
 ]
 
-export const FILTROS = [
-  { value: 'andamento', label: 'Em andamento' },
-  { value: 'atrasados', label: 'Atrasados' },
-  { value: 'pagamento', label: 'A receber' },
-  { value: 'finalizados', label: 'Finalizados' },
-  { value: 'todos', label: 'Todos' },
-] as const
-export type Filtro = (typeof FILTROS)[number]['value']
+/** Filtros que podem ser adicionados à lista (sem nenhum, aparecem todos os atendimentos). */
+export const GRUPOS_FILTRO_ATENDIMENTO: GrupoFiltro[] = [
+  { id: 'etapa', titulo: 'Etapa', opcoes: STATUS.map((x) => ({ valor: x.value, rotulo: x.label, tom: x.tone })) },
+  {
+    id: 'prazo',
+    titulo: 'Prazo de entrega',
+    opcoes: [
+      { valor: 'atrasados', rotulo: 'Atrasados', tom: 'late' },
+      { valor: 'hoje', rotulo: 'Entrega hoje', tom: 'today' },
+    ],
+  },
+  {
+    id: 'pagamento',
+    titulo: 'Pagamento',
+    opcoes: (['pendente', 'parcial', 'pago', 'isento'] as const).map((v) => ({ valor: `pg_${v}`, rotulo: PAGAMENTO[v].label, tom: PAGAMENTO[v].tone })),
+  },
+]
+/** Links antigos (?filtro=atrasados, ?pagamento=pendente) → filtros novos. */
+export const LEGADO_FILTRO_ATENDIMENTO: Record<string, string[]> = {
+  andamento: [...ATIVOS],
+  atrasados: ['atrasados'],
+  pagamento: ['pg_pendente', 'pg_parcial'],
+  finalizados: ['entregue', 'cancelado'],
+  todos: [],
+}
 
 export const label = <T extends string>(list: { value: T; label: string }[], v: T | null | undefined) =>
   list.find((x) => x.value === v)?.label ?? '—'

@@ -7,15 +7,25 @@ export const PAGE_SIZE = 25
 
 const keys = {
   all: ['pacientes'] as const,
-  list: (q: string, page: number) => ['pacientes', 'lista', q, page] as const,
+  list: (q: string, page: number, f: string[] = []) => ['pacientes', 'lista', q, page, [...f].sort().join(',')] as const,
   one: (id: string) => ['pacientes', 'um', id] as const,
 }
 
-export function usePacientes(q: string, page: number) {
+/** Filtros: "origem_<valor>" (clínica/plano/particular) e "idade_<menor|adulto|sem_data>"; sem filtros = todos. */
+export function usePacientes(q: string, page: number, filtros: string[] = []) {
   return useQuery({
-    queryKey: keys.list(q, page),
+    queryKey: keys.list(q, page, filtros),
     queryFn: async () => {
-      const { data, error } = await db().rpc('buscar_pacientes', { q, lim: PAGE_SIZE, pular: page * PAGE_SIZE })
+      const de = (prefixo: string) => filtros.filter((f) => f.startsWith(prefixo)).map((f) => f.slice(prefixo.length))
+      const origens = de('origem_')
+      const faixas = de('idade_')
+      const { data, error } = await db().rpc('buscar_pacientes', {
+        q,
+        lim: PAGE_SIZE,
+        pular: page * PAGE_SIZE,
+        ...(origens.length ? { origens } : {}),
+        ...(faixas.length ? { faixas } : {}),
+      })
       if (error) throw error
       return { rows: data ?? [], total: data?.[0]?.total ?? 0 }
     },
@@ -102,17 +112,3 @@ export function useExcluirPaciente() {
   })
 }
 
-/** Clínicas/operadoras e médicos já usados em outros cadastros (para sugerir no formulário). */
-export function useSugestoesPaciente() {
-  return useQuery({
-    queryKey: ['pacientes', 'sugestoes'],
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const { data, error } = await db().rpc('sugestoes_paciente')
-      if (error) throw error
-      const r = (data ?? {}) as { origens?: unknown; medicos?: unknown }
-      const lista = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
-      return { origens: lista(r.origens), medicos: lista(r.medicos) }
-    },
-  })
-}

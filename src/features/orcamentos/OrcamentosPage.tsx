@@ -1,55 +1,30 @@
-import { useEffect, useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { FileIcon, SearchIcon } from '@/components/ui/icons'
+import { BarraLista, useBuscaUrl, useFiltrosUrl } from '@/components/ui/Filtros'
+import { FileIcon } from '@/components/ui/icons'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { formatIsoDate, todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { PAGE_SIZE, useOrcamentos } from './api'
-import { FILTROS_ORCAMENTO, STATUS_ORCAMENTO, vencido, type FiltroOrcamento } from './constants'
-
-const isFiltro = (v: string | null): v is FiltroOrcamento => FILTROS_ORCAMENTO.some((f) => f.value === v)
+import { GRUPOS_FILTRO_ORCAMENTO, LEGADO_FILTRO_ORCAMENTO, STATUS_ORCAMENTO, vencido } from './constants'
 
 export default function OrcamentosPage() {
   usePageTitle('Orçamentos')
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const notice = (location.state as { notice?: string } | null)?.notice
-  const filtroParam = params.get('filtro')
-  const filtro: FiltroOrcamento = isFiltro(filtroParam) ? filtroParam : 'abertos'
-  const busca = params.get('busca') ?? ''
+  const filtros = useFiltrosUrl(GRUPOS_FILTRO_ORCAMENTO, LEGADO_FILTRO_ORCAMENTO)
+  const { busca, texto, setTexto } = useBuscaUrl()
   const page = Math.max(0, Number(params.get('pagina') ?? '1') - 1)
-  const [texto, setTexto] = useState(busca)
   const [hoje] = useState(todayIso)
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (texto.trim() === busca) return
-      setParams(
-        (p) => {
-          const n = new URLSearchParams(p)
-          if (texto.trim()) n.set('busca', texto.trim())
-          else n.delete('busca')
-          n.delete('pagina')
-          return n
-        },
-        { replace: true },
-      )
-    }, 250)
-    return () => clearTimeout(t)
-  }, [texto, busca, setParams])
-
-  const { data, isPending, isError, refetch, isFetching } = useOrcamentos(filtro, busca, page)
+  const { data, isPending, isError, refetch, isFetching } = useOrcamentos(filtros.ativos, busca, page)
   const total = data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
-  const hrefFiltro = (f: FiltroOrcamento) => {
-    const n = new URLSearchParams({ filtro: f })
-    if (busca) n.set('busca', busca)
-    return `?${n.toString()}`
-  }
   const goPage = (n: number) =>
     setParams((p) => {
       const q = new URLSearchParams(p)
@@ -83,44 +58,14 @@ export default function OrcamentosPage() {
         <h2 id="titulo-lista" className="sr-only">
           Lista de orçamentos
         </h2>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <nav aria-label="Filtrar orçamentos" className="-mx-1 overflow-x-auto px-1">
-            <ul className="m-0 flex w-max list-none gap-2 p-0">
-              {FILTROS_ORCAMENTO.map((f) => (
-                <li key={f.value}>
-                  <Link
-                    to={hrefFiltro(f.value)}
-                    replace
-                    aria-current={filtro === f.value ? 'page' : undefined}
-                    className={cn(
-                      'inline-flex min-h-11 items-center rounded-full border-[1.5px] px-4 text-[15px] font-semibold no-underline transition-colors',
-                      filtro === f.value ? 'border-primary bg-prod-bg text-prod-fg' : 'border-field-soft text-ink-soft hover:border-[#b5cbbf] hover:text-ink',
-                    )}
-                  >
-                    {f.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <search className="w-full lg:max-w-[340px]">
-            <form className="relative" onSubmit={(e) => e.preventDefault()}>
-              <label htmlFor="busca-orcamentos" className="sr-only">
-                Buscar por paciente ou número
-              </label>
-              <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
-              <input
-                id="busca-orcamentos"
-                type="search"
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                placeholder="Buscar por paciente ou número"
-                autoComplete="off"
-                className="h-12 w-full rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
-              />
-            </form>
-          </search>
-        </div>
+        <BarraLista
+          nome="orçamentos"
+          busca={{ texto, setTexto, placeholder: 'Buscar por paciente ou número' }}
+          grupos={GRUPOS_FILTRO_ORCAMENTO}
+          ativos={filtros.ativos}
+          onAlternar={filtros.alternar}
+          onLimpar={filtros.limpar}
+        />
 
         {isError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-field bg-late-bg px-4 py-3 text-late-fg">
@@ -145,7 +90,7 @@ export default function OrcamentosPage() {
               <FileIcon width={26} height={26} />
             </div>
             <p className="m-0 text-lg font-semibold">
-              {busca ? `Nenhum orçamento encontrado para “${busca}”` : filtro === 'abertos' ? 'Nenhum orçamento em aberto' : 'Nenhum orçamento aqui'}
+              {busca ? `Nenhum orçamento encontrado para “${busca}”` : filtros.ativos.length ? 'Nenhum orçamento com esses filtros' : 'Nenhum orçamento ainda'}
             </p>
             <p className="m-0 max-w-sm text-muted">Monte um orçamento com o paciente cadastrado e os produtos da tabela de preços.</p>
             <Link to="/orcamentos/novo" className={buttonClass('primary', 'md', 'mt-2')}>
@@ -169,10 +114,10 @@ export default function OrcamentosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((o) => {
+                  {data.rows.map((o, i) => {
                     const st = STATUS_ORCAMENTO[o.status]
                     return (
-                      <tr key={o.id} className="border-t border-line-soft transition-colors hover:bg-surface">
+                      <tr key={o.id} style={{ '--i': Math.min(i, 12) } as CSSProperties} className="border-t border-line-soft transition-colors hover:bg-surface animate-fade stagger">
                         <th scope="row" className="py-3 pr-3 text-left font-normal whitespace-nowrap">
                           <Link to={`/orcamentos/${o.id}`} className="text-[15px] font-semibold text-ink no-underline tabular-nums hover:text-primary-ink hover:underline">
                             {o.numero}

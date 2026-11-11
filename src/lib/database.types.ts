@@ -29,14 +29,14 @@ export type Database = {
           Tables: {
             "atendimentos": {
                   Row: {
-                    "categoria": Database["public"]['Enums']["categoria_atendimento"],"created_at": string,"created_by": string | null,"data_conclusao": string | null,"data_fechamento": string | null,"data_pagamento": string | null,"data_primeiro_contato": string,"descricao": string | null,"id": string,"numero": number,"observacoes": string | null,"paciente_id": string,"pagamento_detalhe": string | null,"pagamento_forma": Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_status": Database["public"]['Enums']["status_pagamento"],"prazo_entrega": string | null,"status": Database["public"]['Enums']["status_atendimento"],"updated_at": string,"updated_by": string | null,"valor": number,"valor_pago": number
+                    "categoria": Database["public"]['Enums']["categoria_atendimento"],"created_at": string,"created_by": string | null,"data_conclusao": string | null,"data_fechamento": string | null,"data_pagamento": string | null,"data_primeiro_contato": string,"descricao": string | null,"id": string,"numero": number,"observacoes": string | null,"paciente_id": string,"pagamento_detalhe": string | null,"pagamento_forma": Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_parcelas": number | null,"pagamento_status": Database["public"]['Enums']["status_pagamento"],"prazo_entrega": string | null,"status": Database["public"]['Enums']["status_atendimento"],"updated_at": string,"updated_by": string | null,"valor": number,"valor_pago": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "categoria"?: Database["public"]['Enums']["categoria_atendimento"],"created_at"?: string,"created_by"?: string | null,"data_conclusao"?: string | null,"data_fechamento"?: string | null,"data_pagamento"?: string | null,"data_primeiro_contato"?: string,"descricao"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id": string,"pagamento_detalhe"?: string | null,"pagamento_forma"?: Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_status"?: Database["public"]['Enums']["status_pagamento"],"prazo_entrega"?: string | null,"status"?: Database["public"]['Enums']["status_atendimento"],"updated_at"?: string,"updated_by"?: string | null,"valor"?: number,"valor_pago"?: number
+                    "categoria"?: Database["public"]['Enums']["categoria_atendimento"],"created_at"?: string,"created_by"?: string | null,"data_conclusao"?: string | null,"data_fechamento"?: string | null,"data_pagamento"?: string | null,"data_primeiro_contato"?: string,"descricao"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id": string,"pagamento_detalhe"?: string | null,"pagamento_forma"?: Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_parcelas"?: number | null,"pagamento_status"?: Database["public"]['Enums']["status_pagamento"],"prazo_entrega"?: string | null,"status"?: Database["public"]['Enums']["status_atendimento"],"updated_at"?: string,"updated_by"?: string | null,"valor"?: number,"valor_pago"?: number
                   }
                   Update: {
-                    "categoria"?: Database["public"]['Enums']["categoria_atendimento"],"created_at"?: string,"created_by"?: string | null,"data_conclusao"?: string | null,"data_fechamento"?: string | null,"data_pagamento"?: string | null,"data_primeiro_contato"?: string,"descricao"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id"?: string,"pagamento_detalhe"?: string | null,"pagamento_forma"?: Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_status"?: Database["public"]['Enums']["status_pagamento"],"prazo_entrega"?: string | null,"status"?: Database["public"]['Enums']["status_atendimento"],"updated_at"?: string,"updated_by"?: string | null,"valor"?: number,"valor_pago"?: number
+                    "categoria"?: Database["public"]['Enums']["categoria_atendimento"],"created_at"?: string,"created_by"?: string | null,"data_conclusao"?: string | null,"data_fechamento"?: string | null,"data_pagamento"?: string | null,"data_primeiro_contato"?: string,"descricao"?: string | null,"id"?: string,"numero"?: never,"observacoes"?: string | null,"paciente_id"?: string,"pagamento_detalhe"?: string | null,"pagamento_forma"?: Database["public"]['Enums']["forma_pagamento"] | null,"pagamento_parcelas"?: number | null,"pagamento_status"?: Database["public"]['Enums']["status_pagamento"],"prazo_entrega"?: string | null,"status"?: Database["public"]['Enums']["status_atendimento"],"updated_at"?: string,"updated_by"?: string | null,"valor"?: number,"valor_pago"?: number
                   }
                   Relationships: [
                     {
@@ -238,7 +238,7 @@ isOneToOne: false
 { Args: { "p_key": string }; Returns: undefined
                            },
 "buscar_pacientes":
-{ Args: { "lim"?: number,"pular"?: number,"q"?: string }; Returns: {
+{ Args: { "lim"?: number,"pular"?: number,"q"?: string,"origens"?: string[],"faixas"?: string[] }; Returns: {
               "cidade": string,"cpf_mascarado": string,"created_at": string,"data_nascimento": string,"id": string,"nome": string,"origem": Database["public"]['Enums']["origem_paciente"],"origem_nome": string,"responsavel": string,"telefone": string,"total": number,"uf": string
             }[]
                            },
@@ -277,13 +277,10 @@ isOneToOne: false
                            },
 "salvar_paciente":
 { Args: { "p_dados": Json,"p_id": string,"p_responsaveis"?: Json }; Returns: string
-                           },
-"sugestoes_paciente":
-{ Args: never; Returns: Json
                            }
           }
           Enums: {
-            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha","tipo_produto": "base"|"adicional","status_orcamento": "rascunho"|"enviado"|"aprovado"|"recusado"|"substituido","tipo_desconto": "valor"|"percentual"
+            "categoria_atendimento": "confeccao"|"ajuste"|"reparo"|"manutencao","forma_pagamento": "pix"|"dinheiro"|"cartao"|"credito"|"debito"|"boleto"|"convenio","lateralidade": "bilateral"|"unilateral_d"|"unilateral_e","origem_paciente": "clinica"|"particular"|"plano","status_atendimento": "em_contato"|"em_producao"|"pronto"|"entregue"|"cancelado","status_pagamento": "pendente"|"parcial"|"pago"|"isento","tipo_ficha": "ortese"|"protese"|"palmilha","tipo_produto": "base"|"adicional","status_orcamento": "rascunho"|"enviado"|"aprovado"|"recusado"|"substituido","tipo_desconto": "valor"|"percentual"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -403,7 +400,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "categoria_atendimento": ["confeccao", "ajuste", "reparo", "manutencao"],"forma_pagamento": ["pix", "dinheiro", "cartao", "boleto", "convenio"],"lateralidade": ["bilateral", "unilateral_d", "unilateral_e"],"origem_paciente": ["clinica", "particular", "plano"],"status_atendimento": ["em_contato", "em_producao", "pronto", "entregue", "cancelado"],"status_pagamento": ["pendente", "parcial", "pago", "isento"],"tipo_ficha": ["ortese", "protese", "palmilha"]
+            "categoria_atendimento": ["confeccao", "ajuste", "reparo", "manutencao"],"forma_pagamento": ["pix", "dinheiro", "cartao", "credito", "debito", "boleto", "convenio"],"lateralidade": ["bilateral", "unilateral_d", "unilateral_e"],"origem_paciente": ["clinica", "particular", "plano"],"status_atendimento": ["em_contato", "em_producao", "pronto", "entregue", "cancelado"],"status_pagamento": ["pendente", "parcial", "pago", "isento"],"tipo_ficha": ["ortese", "protese", "palmilha"]
           }
         }
 } as const

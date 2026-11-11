@@ -1,57 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { ClipboardIcon, SearchIcon } from '@/components/ui/icons'
+import { BarraLista, useBuscaUrl, useFiltrosUrl } from '@/components/ui/Filtros'
+import { ClipboardIcon } from '@/components/ui/icons'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { formatIsoDate, todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { fichaDe, PAGE_SIZE, useAtendimentos } from './api'
-import { CATEGORIAS, FILTROS, label, PAGAMENTO, prazoAlerta, statusInfo, TIPOS, type Filtro } from './constants'
-
-const isFiltro = (v: string | null): v is Filtro => FILTROS.some((f) => f.value === v)
+import { CATEGORIAS, GRUPOS_FILTRO_ATENDIMENTO, label, LEGADO_FILTRO_ATENDIMENTO, PAGAMENTO, prazoAlerta, statusInfo, TIPOS } from './constants'
 
 export default function AtendimentosPage() {
   usePageTitle('Atendimentos')
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const notice = (location.state as { notice?: string } | null)?.notice
-  // compatibilidade com o link do painel (?pagamento=pendente)
-  const filtroParam = params.get('filtro') ?? (params.get('pagamento') ? 'pagamento' : null)
-  const filtro: Filtro = isFiltro(filtroParam) ? filtroParam : 'andamento'
-  const busca = params.get('busca') ?? ''
+  // Links antigos do painel (?filtro=atrasados, ?pagamento=pendente) continuam funcionando.
+  const filtros = useFiltrosUrl(GRUPOS_FILTRO_ATENDIMENTO, LEGADO_FILTRO_ATENDIMENTO)
+  const { busca, texto, setTexto } = useBuscaUrl()
   const page = Math.max(0, Number(params.get('pagina') ?? '1') - 1)
-  const [texto, setTexto] = useState(busca)
   const [hoje] = useState(todayIso)
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (texto.trim() === busca) return
-      setParams(
-        (p) => {
-          const n = new URLSearchParams(p)
-          if (texto.trim()) n.set('busca', texto.trim())
-          else n.delete('busca')
-          n.delete('pagina')
-          return n
-        },
-        { replace: true },
-      )
-    }, 250)
-    return () => clearTimeout(t)
-  }, [texto, busca, setParams])
-
-  const { data, isPending, isError, refetch, isFetching } = useAtendimentos(filtro, busca, page)
+  const { data, isPending, isError, refetch, isFetching } = useAtendimentos(filtros.ativos, busca, page)
   const total = data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
-  const hrefFiltro = (f: Filtro) => {
-    const n = new URLSearchParams()
-    n.set('filtro', f)
-    if (busca) n.set('busca', busca)
-    return `?${n.toString()}`
-  }
   const goPage = (n: number) =>
     setParams((p) => {
       const q = new URLSearchParams(p)
@@ -85,44 +59,14 @@ export default function AtendimentosPage() {
         <h2 id="titulo-lista" className="sr-only">
           Lista de atendimentos
         </h2>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <nav aria-label="Filtrar atendimentos" className="-mx-1 overflow-x-auto px-1">
-            <ul className="m-0 flex w-max list-none gap-2 p-0">
-              {FILTROS.map((f) => (
-                <li key={f.value}>
-                  <Link
-                    to={hrefFiltro(f.value)}
-                    replace
-                    aria-current={filtro === f.value ? 'page' : undefined}
-                    className={cn(
-                      'inline-flex min-h-11 items-center rounded-full border-[1.5px] px-4 text-[15px] font-semibold no-underline transition-colors',
-                      filtro === f.value ? 'border-primary bg-prod-bg text-prod-fg' : 'border-field-soft text-ink-soft hover:border-[#b5cbbf] hover:text-ink',
-                    )}
-                  >
-                    {f.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <search className="w-full lg:max-w-[340px]">
-            <form className="relative" onSubmit={(e) => e.preventDefault()}>
-              <label htmlFor="busca-atendimentos" className="sr-only">
-                Buscar pelo nome do paciente
-              </label>
-              <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
-              <input
-                id="busca-atendimentos"
-                type="search"
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                placeholder="Buscar pelo nome do paciente"
-                autoComplete="off"
-                className="h-12 w-full rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-colors hover:border-[#b5cbbf]"
-              />
-            </form>
-          </search>
-        </div>
+        <BarraLista
+          nome="atendimentos"
+          busca={{ texto, setTexto, placeholder: 'Buscar pelo nome do paciente' }}
+          grupos={GRUPOS_FILTRO_ATENDIMENTO}
+          ativos={filtros.ativos}
+          onAlternar={filtros.alternar}
+          onLimpar={filtros.limpar}
+        />
 
         {isError ? (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-field bg-late-bg px-4 py-3 text-late-fg">
@@ -146,10 +90,16 @@ export default function AtendimentosPage() {
               <ClipboardIcon width={26} height={26} />
             </div>
             <p className="m-0 text-lg font-semibold">
-              {busca ? `Nenhum atendimento encontrado para “${busca}”` : filtro === 'atrasados' ? 'Nenhum atendimento atrasado' : 'Nenhum atendimento aqui'}
+              {busca
+                ? `Nenhum atendimento encontrado para “${busca}”`
+                : filtros.ativos.length === 1 && filtros.ativos[0] === 'atrasados'
+                  ? 'Nenhum atendimento atrasado'
+                  : filtros.ativos.length
+                    ? 'Nenhum atendimento com esses filtros'
+                    : 'Nenhum atendimento ainda'}
             </p>
             <p className="m-0 max-w-sm text-muted">
-              {filtro === 'atrasados' ? 'Tudo dentro do prazo.' : 'Abra um atendimento a partir da ficha do paciente ou pelo botão abaixo.'}
+              {filtros.ativos.length === 1 && filtros.ativos[0] === 'atrasados' ? 'Tudo dentro do prazo.' : 'Abra um atendimento a partir da ficha do paciente ou pelo botão abaixo.'}
             </p>
             <Link to="/atendimentos/novo" className={buttonClass('primary', 'md', 'mt-2')}>
               + Novo atendimento
@@ -172,13 +122,13 @@ export default function AtendimentosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((a) => {
+                  {data.rows.map((a, i) => {
                     const f = fichaDe(a)
                     const st = statusInfo(a.status)
                     const alerta = prazoAlerta(a.status, a.prazo_entrega, hoje)
                     const pg = PAGAMENTO[a.pagamento_status]
                     return (
-                      <tr key={a.id} className="border-t border-line-soft transition-colors hover:bg-surface">
+                      <tr key={a.id} style={{ '--i': Math.min(i, 12) } as CSSProperties} className="border-t border-line-soft transition-colors hover:bg-surface animate-fade stagger">
                         <th scope="row" className="py-3 pr-3 text-left font-normal">
                           <Link to={`/atendimentos/${a.id}`} className="text-[15px] font-semibold text-ink no-underline hover:text-primary-ink hover:underline">
                             {a.pacientes.nome}

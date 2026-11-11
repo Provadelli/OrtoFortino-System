@@ -1,14 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { db } from '@/lib/supabase'
 import { formatMoneyInput, normalizeSearch, todayIso } from '@/lib/br'
-import { ATIVOS, type Filtro, type StatusAtendimento } from './constants'
+import { ATIVOS, STATUS, type StatusAtendimento, type StatusPagamento } from './constants'
 import { fichaVazia, toPayload, type AtendimentoForm } from './schema'
 
 export const PAGE_SIZE = 25
 
 const keys = {
   all: ['atendimentos'] as const,
-  list: (f: Filtro, q: string, page: number) => ['atendimentos', 'lista', f, q, page] as const,
+  list: (f: string[], q: string, page: number) => ['atendimentos', 'lista', [...f].sort().join(','), q, page] as const,
   one: (id: string) => ['atendimentos', 'um', id] as const,
   doPaciente: (id: string) => ['atendimentos', 'paciente', id] as const,
 }
@@ -16,9 +16,13 @@ const keys = {
 const LISTA_COLS =
   'id, numero, categoria, descricao, status, prazo_entrega, data_primeiro_contato, data_conclusao, valor, valor_pago, pagamento_status, fichas_tecnicas(tipo, produto)'
 
-export function useAtendimentos(filtro: Filtro, q: string, page: number) {
+/**
+ * Lista com filtros combináveis. Dentro de um grupo as opções somam (OU); entre grupos, restringem (E).
+ * Sem filtros = todos os atendimentos.
+ */
+export function useAtendimentos(filtros: string[], q: string, page: number) {
   return useQuery({
-    queryKey: keys.list(filtro, q, page),
+    queryKey: keys.list(filtros, q, page),
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const busca = normalizeSearch(q)
@@ -26,24 +30,30 @@ export function useAtendimentos(filtro: Filtro, q: string, page: number) {
         .from('atendimentos')
         .select(`${LISTA_COLS}, pacientes!inner(id, nome, nome_busca)`, { count: 'exact' })
       if (busca) query = query.like('pacientes.nome_busca', `%${busca.replace(/[%_\\]/g, '')}%`)
-      switch (filtro) {
-        case 'andamento':
-          query = query.in('status', ATIVOS)
-          break
-        case 'atrasados':
-          query = query.in('status', ATIVOS).lt('prazo_entrega', todayIso())
-          break
-        case 'pagamento':
-          query = query.in('pagamento_status', ['pendente', 'parcial']).neq('status', 'cancelado')
-          break
-        case 'finalizados':
-          query = query.in('status', ['entregue', 'cancelado'])
-          break
+      const hoje = todayIso()
+      let etapas = filtros.filter((f): f is StatusAtendimento => STATUS.some((x) => x.value === f))
+      const pagamentos = filtros.filter((f) => f.startsWith('pg_')).map((f) => f.slice(3) as StatusPagamento)
+      const atrasados = filtros.includes('atrasados')
+      const deHoje = filtros.includes('hoje')
+      if (atrasados || deHoje) {
+        // Prazo só faz sentido para quem ainda não foi entregue.
+        etapas = (etapas.length ? etapas : ATIVOS).filter((e) => ATIVOS.includes(e))
+        if (atrasados && deHoje) query = query.lte('prazo_entrega', hoje)
+        else if (atrasados) query = query.lt('prazo_entrega', hoje)
+        else query = query.eq('prazo_entrega', hoje)
+        if (!etapas.length) etapas = ['__nenhum__' as StatusAtendimento]
       }
-      const ordered =
-        filtro === 'finalizados' || filtro === 'todos'
-          ? query.order('created_at', { ascending: false })
-          : query.order('prazo_entrega', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false })
+      if (etapas.length) query = query.in('status', etapas)
+      if (pagamentos.length) {
+        query = query.in('pagamento_status', pagamentos)
+        // "A receber" não inclui cancelados, a menos que a etapa seja escolhida.
+        if (!etapas.length && pagamentos.every((x) => x === 'pendente' || x === 'parcial')) query = query.neq('status', 'cancelado')
+      }
+      // Lista de trabalho (só etapas ativas ou prazo) ordena pelo prazo; o resto, pelos mais recentes.
+      const porPrazo = etapas.length > 0 && etapas.every((e) => ATIVOS.includes(e))
+      const ordered = porPrazo
+        ? query.order('prazo_entrega', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false })
+        : query.order('created_at', { ascending: false })
       const { data, error, count } = await ordered.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
       if (error) throw error
       return { rows: data ?? [], total: count ?? 0 }
@@ -107,6 +117,7 @@ export function toForm(a: Atendimento): AtendimentoForm {
     valor: a.valor ? formatMoneyInput(a.valor) : '',
     valor_pago: a.valor_pago ? formatMoneyInput(a.valor_pago) : '',
     pagamento_forma: s(a.pagamento_forma),
+    pagamento_parcelas: a.pagamento_parcelas ? String(a.pagamento_parcelas) : '',
     pagamento_detalhe: s(a.pagamento_detalhe),
     data_pagamento: s(a.data_pagamento),
     observacoes: s(a.observacoes),

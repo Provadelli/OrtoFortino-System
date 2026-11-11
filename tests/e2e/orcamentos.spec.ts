@@ -98,7 +98,7 @@ test('lista vazia convida a criar orçamento', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
   await mockDb(page, { vazio: true })
   await page.goto('/orcamentos')
-  await expect(page.getByText('Nenhum orçamento em aberto')).toBeVisible()
+  await expect(page.getByText('Nenhum orçamento ainda')).toBeVisible()
   await axe(page)
 })
 
@@ -110,9 +110,17 @@ test('lista mostra situação, vencidos e busca por número', async ({ page }) =
   await expect(linha.getByText('Enviado')).toBeVisible()
   await expect(linha.getByText('Vencido')).toBeVisible()
   await expect(page.getByRole('row', { name: /ORC-2026-0011-v2/ }).getByText('Vencido')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Em aberto' })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByText('2 orçamentos')).toBeVisible()
+  await expect.poll(() => decodeURIComponent(db.urlLista())).not.toContain('status=')
   await axe(page)
+
+  await page.getByRole('button', { name: 'Filtros' }).click()
+  await page.getByRole('group', { name: 'Situação' }).getByRole('button', { name: 'Enviado' }).click()
+  await page.getByRole('group', { name: 'Situação' }).getByRole('button', { name: 'Rascunho' }).click()
+  await expect.poll(() => decodeURIComponent(db.urlLista())).toMatch(/status=in\.\((enviado,rascunho|rascunho,enviado)\)/)
+  await page.getByRole('button', { name: 'Vencidos' }).click()
+  await expect.poll(() => decodeURIComponent(db.urlLista())).toContain('validade=lt.')
+  await page.getByRole('button', { name: /Limpar filtros/ }).click()
 
   await page.getByLabel('Buscar por paciente ou número').fill('0012')
   await expect(page).toHaveURL(/busca=0012/)
