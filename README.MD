@@ -64,7 +64,7 @@ Design de referência (Login e Dashboard): https://claude.ai/artifact/XcG9FL1m3R
 - [x] Preço editável por item, com a opção "salvar na tabela"
 - [x] Subtotais por seção e total em tempo real
 - [x] Versionamento após aprovação
-- [ ] **Geração de PDF** com a marca da empresa
+- [x] **Geração de PDF** com a marca da empresa
 
 **Painel**
 - [x] Indicadores: em produção, entregas da semana, a receber, orçamentos em aberto
@@ -213,7 +213,7 @@ orto-fortino/
 | 3 | Dashboard com dados reais | ✅ |
 | 4 | Tabela de preços editável | ✅ |
 | 5 | Orçamentos | ✅ |
-| 6 | PDF do orçamento | ⬜ |
+| 6 | PDF do orçamento | ✅ |
 | 7 | Configurações e ajustes | ⬜ |
 
 **Depois do MVP:** PDF da ficha de montagem, envio por WhatsApp/e-mail, anexos (receitas, fotos) e relatórios de faturamento.
