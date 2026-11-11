@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 const YEAR = new Date().getFullYear()
 import { BrandStripe } from '@/components/brand/BrandStripe'
 import { Logo } from '@/components/brand/Logo'
+import { EMPRESA } from '@/lib/empresa'
 import { LockIcon } from '@/components/ui/icons'
 
 /** Tela dividida do canvas: marca à esquerda (menta + raios de sol), formulário à direita. */
@@ -30,7 +31,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             <LockIcon className="shrink-0 text-primary" />
             Dados dos pacientes protegidos conforme a LGPD.
           </p>
-          <p className="m-0">© {YEAR} Orto Fortino · (21) 96497-3837</p>
+          <p className="m-0">
+            © {YEAR} {EMPRESA.nome} · {EMPRESA.telefone}
+          </p>
         </footer>
       </main>
     </div>

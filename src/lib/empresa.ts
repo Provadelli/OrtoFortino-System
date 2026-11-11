@@ -6,5 +6,5 @@ export const EMPRESA = {
   endereco: 'Rua Itapicuru, 151, Quadra B Lote 40 - Bairro Kennedy',
   cidade: 'Nova Iguaçu - RJ',
   cep: '26.020-560',
-  telefone: '(21) 98118-0919',
+  telefone: '(21) 96497-3837',
 } as const
