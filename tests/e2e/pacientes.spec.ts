@@ -132,3 +132,15 @@ test('sem consentimento não salva', async ({ page }) => {
   await expect(page.getByText('É preciso registrar o consentimento')).toBeVisible()
   expect(db.salvo()).toBeNull()
 })
+
+test('rascunho do cadastro volta ao retornar à tela', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  await mockDb(page)
+  await page.goto('/clientes/novo')
+  await page.getByLabel('Nome completo *').fill('Davi Martins')
+  await page.getByRole('link', { name: 'Voltar para clientes' }).click()
+  await expect(page).toHaveURL(/\/clientes$/)
+  await page.goBack()
+  await expect(page.getByText('Continuando de onde você parou.')).toBeVisible()
+  await expect(page.getByLabel('Nome completo *')).toHaveValue('Davi Martins')
+})

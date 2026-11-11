@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useFieldArray, useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams } from 'react-router'
+import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, FieldError, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
@@ -10,6 +11,7 @@ import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone, UFS } from '@/lib/br'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { useRascunho } from '@/lib/rascunho'
 import { toForm, usePaciente, useSalvarPaciente } from './api'
 import { ORIGENS, pacienteSchema, pacienteVazio, type PacienteForm } from './schema'
 
@@ -39,10 +41,10 @@ export default function PacienteFormPage() {
       </div>
     )
 
-  return <PacienteFormInner id={id} initial={paciente ? toForm(paciente) : pacienteVazio} consentEm={paciente?.consentimento_lgpd_em} />
+  return <PacienteFormInner key={id ?? 'novo'} id={id} initial={paciente ? toForm(paciente) : pacienteVazio} consentEm={paciente?.consentimento_lgpd_em} base={paciente?.updated_at ?? null} />
 }
 
-function PacienteFormInner({ id, initial, consentEm }: { id?: string; initial: PacienteForm; consentEm?: string }) {
+function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; initial: PacienteForm; consentEm?: string; base: string | null }) {
   const editing = !!id
   usePageTitle(editing ? `Editar ${initial.nome}` : 'Novo paciente')
   const navigate = useNavigate()
@@ -50,6 +52,11 @@ function PacienteFormInner({ id, initial, consentEm }: { id?: string; initial: P
   const [serverError, setServerError] = useState<string | null>(null)
   const [hoje] = useState(() => new Date().toISOString().slice(0, 10))
 
+  const form = useForm<PacienteForm>({
+    resolver: zodResolver(pacienteSchema),
+    defaultValues: initial,
+    mode: 'onTouched',
+  })
   const {
     register,
     handleSubmit,
@@ -57,11 +64,8 @@ function PacienteFormInner({ id, initial, consentEm }: { id?: string; initial: P
     setError,
     setValue,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<PacienteForm>({
-    resolver: zodResolver(pacienteSchema),
-    defaultValues: initial,
-    mode: 'onTouched',
-  })
+  } = form
+  const rascunho = useRascunho(form, `paciente:${id ?? 'novo'}`, initial, base)
   const { fields, append, remove } = useFieldArray({ control, name: 'responsaveis', keyName: 'key' })
   const [origem, nascimento, responsaveis] = useWatch({ control, name: ['origem', 'data_nascimento', 'responsaveis'] })
   const idade = useMemo(() => ageFrom(nascimento), [nascimento])
@@ -89,6 +93,7 @@ function PacienteFormInner({ id, initial, consentEm }: { id?: string; initial: P
     if (values.responsaveis.length && !values.responsaveis.some((r) => r.principal)) values.responsaveis[0]!.principal = true
     try {
       const savedId = await salvar.mutateAsync(values)
+      rascunho.concluir()
       navigate(`/clientes/${savedId}`, { replace: true, state: { notice: editing ? 'Alterações salvas.' : 'Paciente cadastrado com sucesso.' } })
     } catch (err) {
       if (isDbError(err) && err.code === '23505') {
@@ -118,6 +123,7 @@ function PacienteFormInner({ id, initial, consentEm }: { id?: string; initial: P
         </h1>
         <p className="m-0 text-sm text-muted">Campos com * são obrigatórios.</p>
       </header>
+      <AvisoRascunho em={rascunho.restauradoEm} onDescartar={rascunho.descartar} />
 
       {(serverError || errorCount > 0) && (
         <div role="alert" className="rounded-field border border-[#f6b8d6] bg-late-bg px-4 py-3 text-[15px] font-medium text-late-fg">

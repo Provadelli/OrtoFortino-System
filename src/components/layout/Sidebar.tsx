@@ -4,6 +4,7 @@ import { BrandStripe } from '@/components/brand/BrandStripe'
 import { Logo } from '@/components/brand/Logo'
 import { ClipboardIcon, CloseIcon, FileIcon, GearIcon, MenuIcon, PanelIcon, TagIcon, UsersIcon } from '@/components/ui/icons'
 import { logout } from '@/features/auth/auth-client'
+import { limparRascunhos } from '@/lib/rascunho'
 import { useSession } from '@/features/auth/useSession'
 import { cn } from '@/lib/cn'
 import { initials } from '@/lib/format'
@@ -37,6 +38,7 @@ export function Sidebar() {
 
   async function onLogout() {
     setLeaving(true)
+    limparRascunhos()
     try {
       await logout()
     } finally {

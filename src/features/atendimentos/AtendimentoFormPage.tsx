@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
@@ -12,6 +13,7 @@ import { parseBRL, todayIso } from '@/lib/br'
 import { formatBRL } from '@/lib/format'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { useRascunho } from '@/lib/rascunho'
 import { toForm, useAtendimento, useSalvarAtendimento } from './api'
 import { CATEGORIAS, ESPECIFICACOES, FORMAS, LATERALIDADES, PAGAMENTO, PRODUTOS, STATUS, TIPOS, type StatusPagamento } from './constants'
 import { PacientePicker } from './PacientePicker'
@@ -35,7 +37,7 @@ export default function AtendimentoFormPage() {
     )
 
   const initial = data ? toForm(data) : atendimentoVazio(params.get('paciente') ?? '', hoje)
-  return <Inner id={id} numero={data?.numero} initial={initial} hoje={hoje} />
+  return <Inner key={id ?? 'novo'} id={id} numero={data?.numero} initial={initial} hoje={hoje} base={data?.updated_at ?? null} />
 }
 
 function statusPagamento(valor: number, pago: number): StatusPagamento {
@@ -44,20 +46,22 @@ function statusPagamento(valor: number, pago: number): StatusPagamento {
   return pago > 0 ? 'parcial' : 'pendente'
 }
 
-function Inner({ id, numero, initial, hoje }: { id?: string; numero?: number; initial: AtendimentoForm; hoje: string }) {
+function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: number; initial: AtendimentoForm; hoje: string; base: string | null }) {
   const editing = !!id
   usePageTitle(editing ? `Editar atendimento nº ${numero}` : 'Novo atendimento')
   const navigate = useNavigate()
   const salvar = useSalvarAtendimento(id)
   const [serverError, setServerError] = useState<string | null>(null)
 
+  const form = useForm<AtendimentoForm>({ resolver: zodResolver(atendimentoSchema), defaultValues: initial, mode: 'onTouched' })
   const {
     register,
     handleSubmit,
     control,
     setValue,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<AtendimentoForm>({ resolver: zodResolver(atendimentoSchema), defaultValues: initial, mode: 'onTouched' })
+  } = form
+  const rascunho = useRascunho(form, `atendimento:${id ?? 'novo'}`, initial, base)
 
   const [categoria, comFicha, tipo, compLado, nomeNaOrtese, valor, valorPago] = useWatch({
     control,
@@ -77,6 +81,7 @@ function Inner({ id, numero, initial, hoje }: { id?: string; numero?: number; in
     setServerError(null)
     try {
       const savedId = await salvar.mutateAsync(values)
+      rascunho.concluir()
       navigate(`/atendimentos/${savedId}`, { replace: true, state: { notice: editing ? 'Alterações salvas.' : 'Atendimento aberto com sucesso.' } })
     } catch (err) {
       setServerError(
@@ -101,6 +106,7 @@ function Inner({ id, numero, initial, hoje }: { id?: string; numero?: number; in
         </h1>
         <p className="m-0 text-sm text-muted">Campos com * são obrigatórios.</p>
       </header>
+      <AvisoRascunho em={rascunho.restauradoEm} onDescartar={rascunho.descartar} />
 
       {(serverError || errorCount > 0) && (
         <div role="alert" className="rounded-field border border-[#f6b8d6] bg-late-bg px-4 py-3 text-[15px] font-medium text-late-fg">

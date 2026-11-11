@@ -172,3 +172,29 @@ test('ficha do paciente lista os atendimentos', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'AFO articulada bilateral' })).toBeVisible()
   await expect(page.getByRole('link', { name: '+ Novo atendimento' })).toHaveAttribute('href', `/atendimentos/novo?paciente=${PACIENTE.id}`)
 })
+
+test('rascunho: sair da tela e voltar mantém o que foi preenchido, e some depois de salvar', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  const db = await mockDb(page)
+  await page.goto('/atendimentos/novo')
+  await page.getByRole('radio', { name: /Helena Ribeiro/ }).click()
+  await page.getByLabel('Descrição curta').fill('AFO articulada bilateral')
+  await page.getByLabel('Valor (R$)').fill('1.250,00')
+
+  await page.getByRole('link', { name: 'Voltar' }).click() // navegação dentro do sistema
+  await expect(page).not.toHaveURL(/\/novo$/)
+  await page.goBack()
+  await expect(page.getByText('Continuando de onde você parou.')).toBeVisible()
+  await expect(page.getByLabel('Descrição curta')).toHaveValue('AFO articulada bilateral')
+  await expect(page.getByLabel('Valor (R$)')).toHaveValue('1.250,00')
+  await expect(page.getByRole('button', { name: 'Trocar paciente' })).toBeVisible()
+  await axe(page)
+
+  await page.getByRole('button', { name: 'Abrir atendimento' }).click()
+  await expect(page).toHaveURL(new RegExp(`/atendimentos/${ATENDIMENTO.id}$`))
+  expect((db.salvo() as { p_dados: Record<string, unknown> }).p_dados).toMatchObject({ paciente_id: PACIENTE.id, valor: 1250, descricao: 'AFO articulada bilateral' })
+
+  await page.goto('/atendimentos/novo')
+  await expect(page.getByLabel('Descrição curta')).toHaveValue('')
+  await expect(page.getByText('Continuando de onde você parou.')).toHaveCount(0)
+})

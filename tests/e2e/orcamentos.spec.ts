@@ -257,3 +257,29 @@ test('baixa o PDF do orçamento com o nome do arquivo certo', async ({ page }) =
   expect(pdf.length).toBeGreaterThan(20_000) // com logo e fontes embutidas
   if (process.env.PDF_OUT) copyFileSync(caminho, process.env.PDF_OUT)
 })
+
+test('rascunho do orçamento: volta com os itens e pode ser descartado', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  await mockDb(page)
+  await page.goto('/orcamentos/novo')
+  await page.getByRole('radio', { name: /Helena Ribeiro/ }).click()
+  await page.getByLabel('Adicionar da tabela de preços').fill('afo')
+  await page.getByRole('button', { name: /AFO articulada/ }).click()
+  await page.getByRole('button', { name: '+ Item avulso' }).click()
+  await page.keyboard.type('Ajuste de velcro')
+
+  await page.getByRole('link', { name: 'Voltar para orçamentos' }).click()
+  await expect(page).toHaveURL(/\/orcamentos$/)
+  await page.goBack()
+  await expect(page.getByText('Continuando de onde você parou.')).toBeVisible()
+  await expect(page.getByRole('group', { name: 'AFO articulada' })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Ajuste de velcro' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Resumo' })).toContainText(/R\$\s1\.250,00/)
+  await axe(page)
+
+  await page.getByRole('button', { name: 'Descartar rascunho' }).click()
+  await expect(page.getByText('Continuando de onde você parou.')).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'AFO articulada' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('group', { name: 'Ajuste de velcro' })).toHaveCount(0)
+})

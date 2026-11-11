@@ -3,6 +3,7 @@ import { Controller, useFieldArray, useForm, useWatch, type FieldErrors, type Us
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
+import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, FieldError, Section, TextareaField } from '@/components/ui/FormControls'
@@ -15,6 +16,7 @@ import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { useRascunho } from '@/lib/rascunho'
 import { toForm, useOrcamento, useSalvarOrcamento } from './api'
 import { calcular, SEM_SECAO } from './calc'
 import { editavel, STATUS_ORCAMENTO } from './constants'
@@ -51,10 +53,10 @@ export default function OrcamentoFormPage() {
       </div>
     )
 
-  return <OrcamentoFormInner key={o?.id ?? 'novo'} id={o?.id} numero={o?.numero} initial={o ? toForm(o) : orcamentoVazio(params.get('paciente') ?? '', hoje)} />
+  return <OrcamentoFormInner key={o?.id ?? 'novo'} id={o?.id} numero={o?.numero} base={o?.updated_at ?? null} initial={o ? toForm(o) : orcamentoVazio(params.get('paciente') ?? '', hoje)} />
 }
 
-function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: string; initial: OrcamentoForm }) {
+function OrcamentoFormInner({ id, numero, initial, base }: { id?: string; numero?: string; initial: OrcamentoForm; base: string | null }) {
   const editing = !!id
   usePageTitle(editing ? `Editar ${numero}` : 'Novo orçamento')
   const navigate = useNavigate()
@@ -62,12 +64,14 @@ function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: str
   const [serverError, setServerError] = useState<string | null>(null)
   const [anuncio, setAnuncio] = useState('')
 
+  const form = useForm<OrcamentoForm>({ resolver: zodResolver(orcamentoSchema), defaultValues: initial, mode: 'onTouched' })
   const {
     register,
     handleSubmit,
     control,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<OrcamentoForm>({ resolver: zodResolver(orcamentoSchema), defaultValues: initial, mode: 'onTouched' })
+  } = form
+  const rascunho = useRascunho(form, `orcamento:${id ?? 'novo'}`, initial, base)
   const { fields, append, insert, remove } = useFieldArray({ control, name: 'itens', keyName: 'key' })
   const [itens, descontoTipo, desconto] = useWatch({ control, name: ['itens', 'desconto_tipo', 'desconto'] })
 
@@ -99,6 +103,7 @@ function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: str
     setServerError(null)
     try {
       const savedId = await salvar.mutateAsync(values)
+      rascunho.concluir()
       navigate(`/orcamentos/${savedId}`, { replace: true, state: { notice: editing ? 'Alterações salvas.' : 'Orçamento criado.' } })
     } catch (err) {
       if (isDbError(err) && err.code === '55000') setServerError('Este orçamento foi aprovado ou recusado enquanto você editava. Abra-o de novo e crie uma nova versão.')
@@ -124,6 +129,7 @@ function OrcamentoFormInner({ id, numero, initial }: { id?: string; numero?: str
         </h1>
         <p className="m-0 text-sm text-muted">Campos com * são obrigatórios. Os preços são copiados da tabela e podem ser ajustados em cada item.</p>
       </header>
+      <AvisoRascunho em={rascunho.restauradoEm} onDescartar={rascunho.descartar} />
 
       {(serverError || errorCount > 0) && (
         <div role="alert" className="rounded-field border border-[#f6b8d6] bg-late-bg px-4 py-3 text-[15px] font-medium text-late-fg">
