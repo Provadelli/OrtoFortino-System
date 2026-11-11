@@ -20,12 +20,15 @@ const C = {
 
 const s = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 72, paddingHorizontal: 40, fontFamily: 'Poppins', fontSize: 9.5, color: C.tinta },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  logo: { width: 150, height: 77.8 },
-  doc: { alignItems: 'flex-end', gap: 2 },
-  docRotulo: { fontSize: 8, letterSpacing: 2, color: C.apagado, fontWeight: 600 },
-  docNumero: { fontSize: 20, fontWeight: 700, color: C.tinta },
-  docData: { fontSize: 9, color: C.suave },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  logo: { width: 118, height: 61.2 },
+  emitente: { flex: 1, gap: 1.5, paddingLeft: 14, borderLeftWidth: 0.8, borderLeftColor: C.linha },
+  emitenteNome: { fontSize: 11, fontWeight: 700, color: C.tinta },
+  emitenteInfo: { fontSize: 8, color: C.suave },
+  doc: { width: 138, alignItems: 'flex-end', gap: 1.5, backgroundColor: C.lavado, borderRadius: 8, paddingVertical: 9, paddingHorizontal: 11 },
+  docRotulo: { fontSize: 7.5, letterSpacing: 2, color: C.verdeEscuro, fontWeight: 600 },
+  docNumero: { fontSize: 15, fontWeight: 700, color: C.tinta },
+  docData: { fontSize: 8.5, color: C.suave },
   stripe: { flexDirection: 'row', height: 3, marginTop: 14, marginBottom: 16 },
   aviso: { alignSelf: 'flex-start', borderRadius: 10, paddingVertical: 3, paddingHorizontal: 10, fontSize: 8.5, fontWeight: 600, marginBottom: 12 },
   pessoas: { flexDirection: 'row', gap: 12, marginBottom: 18 },
@@ -36,6 +39,7 @@ const s = StyleSheet.create({
   th: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.tinta, paddingBottom: 5, fontSize: 8, fontWeight: 600, color: C.apagado, letterSpacing: 0.6 },
   secao: { backgroundColor: C.lavado, paddingVertical: 4, paddingHorizontal: 6, marginTop: 6, fontSize: 8, fontWeight: 600, letterSpacing: 1, color: C.verdeEscuro },
   tr: { flexDirection: 'row', borderBottomWidth: 0.6, borderBottomColor: C.linha, paddingVertical: 6 },
+  trPar: { backgroundColor: '#FAFCFB' },
   subtotalSecao: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, paddingVertical: 5, fontSize: 8.5, color: C.apagado },
   colItem: { flex: 1, paddingRight: 8, paddingLeft: 6 },
   colQtd: { width: 62, textAlign: 'right' },
@@ -48,8 +52,9 @@ const s = StyleSheet.create({
   totalTexto: { fontSize: 13, fontWeight: 700, color: C.verdeEscuro },
   condicoes: { marginTop: 22, gap: 10 },
   grade: { flexDirection: 'row', gap: 12 },
-  aceite: { marginTop: 34, flexDirection: 'row', gap: 28 },
-  assinatura: { flex: 1, borderTopWidth: 0.8, borderTopColor: C.suave, paddingTop: 4, fontSize: 8.5, color: C.apagado },
+  aceite: { marginTop: 40, flexDirection: 'row', gap: 28 },
+  assinatura: { flex: 1, borderTopWidth: 0.8, borderTopColor: C.suave, paddingTop: 4, fontSize: 8.5, color: C.apagado, textAlign: 'center' },
+  aceiteTexto: { marginTop: 22, fontSize: 8.5, color: C.suave },
   rodape: { position: 'absolute', left: 40, right: 40, bottom: 24, borderTopWidth: 0.6, borderTopColor: C.linha, paddingTop: 7, fontSize: 7.5, color: C.apagado },
   pagina: { position: 'absolute', left: 40, right: 40, bottom: 35, textAlign: 'right', fontSize: 7.5, color: C.apagado },
 })
@@ -75,11 +80,18 @@ export function OrcamentoPdf({ d }: { d: DadosPdf }) {
       <Page size="A4" style={s.page}>
         <View style={s.header}>
           <Image src={logo} style={s.logo} />
+          <View style={s.emitente}>
+            <Text style={s.emitenteNome}>{d.empresa.nome}</Text>
+            {d.empresa.slogan && <Text style={s.emitenteInfo}>{d.empresa.slogan}</Text>}
+            {d.empresa.cnpj && <Text style={s.emitenteInfo}>{d.empresa.cnpj}</Text>}
+            {d.empresa.endereco && <Text style={s.emitenteInfo}>{d.empresa.endereco}</Text>}
+            {d.empresa.contato && <Text style={s.emitenteInfo}>{d.empresa.contato}</Text>}
+          </View>
           <View style={s.doc}>
             <Text style={s.docRotulo}>ORÇAMENTO</Text>
             <Text style={s.docNumero}>{d.numero}</Text>
-            <Text style={s.docData}>Emitido em {d.emissao}</Text>
-            <Text style={s.docData}>Válido até {d.validade}</Text>
+            <Text style={s.docData}>Emissão: {d.emissao}</Text>
+            <Text style={s.docData}>Validade: {d.validade}</Text>
           </View>
         </View>
         <View style={s.stripe}>
@@ -123,7 +135,7 @@ export function OrcamentoPdf({ d }: { d: DadosPdf }) {
               {sec.nome.toUpperCase()}
             </Text>
             {sec.itens.map((i, k) => (
-              <View key={k} style={s.tr} wrap={false}>
+              <View key={k} style={k % 2 === 1 ? [s.tr, s.trPar] : s.tr} wrap={false}>
                 <View style={s.colItem}>
                   <Text style={{ fontWeight: 600 }}>{i.descricao}</Text>
                   {i.detalhe && <Text style={s.detalhe}>{i.detalhe}</Text>}
@@ -170,9 +182,13 @@ export function OrcamentoPdf({ d }: { d: DadosPdf }) {
           {d.observacoes && <Campo rotulo="Observações">{d.observacoes}</Campo>}
         </View>
 
-        <View style={s.aceite} wrap={false}>
-          <Text style={s.assinatura}>De acordo: paciente ou responsável</Text>
-          <Text style={[s.assinatura, { flex: 0.5 }]}>Data</Text>
+        <View wrap={false}>
+          <Text style={s.aceiteTexto}>Declaro estar de acordo com os itens, valores e condições deste orçamento.</Text>
+          <View style={s.aceite}>
+            <Text style={[s.assinatura, { flex: 0.6 }]}>Local e data</Text>
+            <Text style={s.assinatura}>Paciente ou responsável</Text>
+            <Text style={s.assinatura}>{d.empresa.nome}</Text>
+          </View>
         </View>
 
         <View style={s.rodape} fixed>

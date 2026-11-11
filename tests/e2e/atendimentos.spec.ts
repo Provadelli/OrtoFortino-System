@@ -143,15 +143,39 @@ test('novo atendimento: escolhe paciente, preenche ficha e salva', async ({ page
 
   await page.getByRole('radio', { name: /Helena Ribeiro/ }).click() // o seletor vira o resumo do paciente
   await expect(page.getByRole('button', { name: 'Trocar paciente' })).toBeVisible()
-  await page.getByLabel('Descrição curta').fill('AFO articulada bilateral')
+  // Produto pelo menu (teclado): filtra sem acento, seta e Enter escolhem; a descrição curta é sugerida.
+  const produto = page.getByRole('combobox', { name: 'Produto' })
+  await produto.click()
+  await expect(page.getByRole('option', { name: 'KAFO', exact: true })).toBeVisible()
+  await produto.pressSequentially('articul')
+  await expect(page.getByRole('listbox', { name: 'Opções' }).getByRole('option')).toHaveText(['AFO articulada', 'Usar “articul”'])
+  await produto.press('ArrowDown')
+  await produto.press('Enter')
+  await expect(produto).toHaveValue('AFO articulada')
+  await expect(page.getByRole('listbox', { name: 'Opções' })).toBeHidden()
+  await expect(page.getByLabel('Descrição curta')).toHaveValue('AFO articulada')
   await page.getByRole('radio', { name: 'Bilateral' }).check()
-  await page.getByLabel('Produto').fill('AFO articulada')
+  await expect(page.getByLabel('Descrição curta')).toHaveValue('AFO articulada bilateral')
   await page.getByRole('checkbox', { name: 'Tira valgo' }).check()
-  await page.getByLabel('Valor (R$)').fill('1.250,00')
+
+  // Status avança e o fechamento aparece; atalho de prazo.
+  await page.getByRole('radio', { name: 'Em produção' }).check()
+  await expect(page.getByLabel('Fechamento')).not.toHaveValue('')
+  await page.getByRole('button', { name: 'Prazo de 30 dias' }).click()
+  await expect(page.getByRole('button', { name: 'Prazo de 30 dias' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByLabel('Prazo de entrega')).not.toHaveValue('')
+
+  // Dinheiro no padrão contábil: milhar enquanto digita, centavos ao sair.
+  await page.getByLabel('Valor (R$)').pressSequentially('1250')
+  await expect(page.getByLabel('Valor (R$)')).toHaveValue('1.250')
+  await page.getByLabel('Valor (R$)').blur()
+  await expect(page.getByLabel('Valor (R$)')).toHaveValue('1.250,00')
+  await expect(page.getByLabel('Data do pagamento')).toHaveValue('')
   await page.getByLabel('Valor pago (R$)').fill('2.000')
   await page.getByLabel('Valor pago (R$)').blur()
   await expect(page.getByText('O valor pago é maior que o valor do atendimento.')).toBeVisible()
   await page.getByLabel('Valor pago (R$)').fill('500')
+  await expect(page.getByLabel('Data do pagamento')).not.toHaveValue('') // pago informado: data de hoje
   await expect(page.getByText(/falta R\$\s*750,00/)).toBeVisible()
   await axe(page)
 
@@ -161,7 +185,8 @@ test('novo atendimento: escolhe paciente, preenche ficha e salva', async ({ page
 
   const body = db.salvo() as { p_id: string | null; p_dados: Record<string, unknown>; p_ficha: Record<string, unknown> }
   expect(body.p_id).toBeNull()
-  expect(body.p_dados).toMatchObject({ paciente_id: PACIENTE.id, valor: 1250, valor_pago: 500, categoria: 'confeccao' })
+  expect(body.p_dados).toMatchObject({ paciente_id: PACIENTE.id, valor: 1250, valor_pago: 500, categoria: 'confeccao', status: 'em_producao', descricao: 'AFO articulada bilateral' })
+  expect(String(body.p_dados.prazo_entrega)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   expect(body.p_ficha).toMatchObject({ tipo: 'ortese', lateralidade: 'bilateral', produto: 'AFO articulada', especificacoes: ['Tira valgo'] })
 })
 

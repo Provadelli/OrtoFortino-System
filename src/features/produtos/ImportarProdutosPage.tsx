@@ -1,17 +1,18 @@
-import { useId, useMemo, useState, type ChangeEvent } from 'react'
+import { useId, useMemo, useState, type DragEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Section } from '@/components/ui/FormControls'
 import { ArrowLeftIcon, DownloadIcon } from '@/components/ui/icons'
+import { cn } from '@/lib/cn'
 import { StatusChip } from '@/components/ui/StatusChip'
-import { normalizeSearch } from '@/lib/br'
 import { formatBRL } from '@/lib/format'
+import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { useImportarProdutos, useProdutos, type Produto } from './api'
-import { lerPlanilha, MODELO_CSV, parseCsv, type ItemImportado, type ResultadoLeitura } from './csv'
+import { useImportarProdutos, useProdutos } from './api'
+import { compararComTabela, lerPlanilha, linhasDoExcel, MODELO_CSV, parseCsvComLinhas, type ItemImportado, type ResultadoLeitura } from './csv'
 import { tipoInfo } from './schema'
 
-const MAX_BYTES = 2 * 1024 * 1024
+const MAX_BYTES = 5 * 1024 * 1024
 const MODELO_HREF = `data:text/csv;charset=utf-8,${encodeURIComponent(MODELO_CSV)}`
 
 /** UTF-8 quando válido; senão Windows-1252 (o "CSV separado por ponto e vírgula" do Excel em português). */
@@ -24,74 +25,103 @@ async function lerTexto(file: File) {
   }
 }
 
-type Mudanca = { tipo: 'novo' } | { tipo: 'preco'; antes: number } | { tipo: 'igual'; reativa: boolean }
+/** Lê a 1ª aba do .xlsx (biblioteca carregada só quando precisa). */
+async function lerExcel(file: File) {
+  const { readSheet } = await import('read-excel-file/browser')
+  return linhasDoExcel(await readSheet(file))
+}
 
-/** Mesmo critério do banco (importar_produtos): código primeiro, depois nome sem acento. */
-function compararComTabela(itens: ItemImportado[], atuais: Produto[]) {
-  const porCodigo = new Map(atuais.filter((p) => p.codigo).map((p) => [p.codigo!.toLowerCase(), p]))
-  const porNome = new Map(atuais.map((p) => [p.nome_busca ?? normalizeSearch(p.nome), p]))
-  return itens.map((item) => {
-    const atual = (item.codigo && porCodigo.get(item.codigo.toLowerCase())) || porNome.get(normalizeSearch(item.nome))
-    const mudanca: Mudanca = !atual ? { tipo: 'novo' } : atual.preco !== item.preco ? { tipo: 'preco', antes: atual.preco } : { tipo: 'igual', reativa: !atual.ativo }
-    return { item, mudanca }
-  })
+/** Mensagem clara para a falha do banco (a importação é tudo ou nada). */
+function mensagemErroImportacao(err: unknown, itens: ItemImportado[]) {
+  const nada = 'Nada foi alterado.'
+  if (isDbError(err) && err.code === '23505') {
+    const item = itens[Number(err.details) - 1]
+    const campo = err.hint === 'codigo' ? 'o código' : 'o nome'
+    return item
+      ? `Linha ${item.linha} (“${item.nome}”): ${campo} já pertence a outro produto da tabela. Corrija a planilha e envie de novo. ${nada}`
+      : `Algum código ou nome da planilha já pertence a outro produto. ${nada}`
+  }
+  if (isDbError(err) && (err.code === '22023' || err.code === '22P02' || err.code === '23514'))
+    return `Algum valor da planilha não foi aceito pelo servidor (preço, tipo ou tamanho dos textos). ${nada}`
+  if (isDbError(err) && err.code === '42501') return `Sua sessão não tem permissão para importar. Entre de novo. ${nada}`
+  return `A importação não foi concluída. Verifique sua conexão e tente de novo. ${nada}`
 }
 
 export default function ImportarProdutosPage() {
   usePageTitle('Importar planilha de preços')
   const navigate = useNavigate()
   const inputId = useId()
-  const { data: atuais, isPending: carregandoTabela } = useProdutos()
+  const [arrastando, setArrastando] = useState(false)
+  const { data: atuais, isPending: carregandoTabela, isError: erroTabela } = useProdutos()
   const importar = useImportarProdutos()
   const [arquivo, setArquivo] = useState<string | null>(null)
   const [leitura, setLeitura] = useState<ResultadoLeitura | null>(null)
   const [erroArquivo, setErroArquivo] = useState<string | null>(null)
   const [erroImportacao, setErroImportacao] = useState<string | null>(null)
 
-  const previa = useMemo(() => (leitura && atuais ? compararComTabela(leitura.itens, atuais) : []), [leitura, atuais])
+  const comparacao = useMemo(() => (leitura && atuais ? compararComTabela(leitura.itens, atuais) : null), [leitura, atuais])
+  const previa = comparacao?.previa ?? []
   const novos = previa.filter((p) => p.mudanca.tipo === 'novo').length
   const reajustes = previa.filter((p) => p.mudanca.tipo === 'preco').length
+  // Só vai para o banco o que passou na leitura E não conflita com a tabela atual.
+  const paraImportar = comparacao ? previa.map((p) => p.item) : erroTabela ? (leitura?.itens ?? []) : []
 
-  async function onArquivo(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+  async function onArquivo(file: File | undefined) {
     setLeitura(null)
     setErroArquivo(null)
     setErroImportacao(null)
     setArquivo(file?.name ?? null)
     if (!file) return
-    if (!/\.(csv|txt)$/i.test(file.name)) {
-      setErroArquivo('Envie um arquivo .csv. No Excel: Arquivo → Salvar como → “CSV (separado por ponto e vírgula)”.')
+    const excel = /\.xlsx$/i.test(file.name)
+    if (/\.(xls|ods|numbers)$/i.test(file.name)) {
+      setErroArquivo('Este formato não é lido. No Excel ou no LibreOffice, use Arquivo → Salvar como → “Pasta de Trabalho do Excel (.xlsx)” ou CSV.')
+      return
+    }
+    if (!excel && !/\.(csv|txt)$/i.test(file.name)) {
+      setErroArquivo('Envie a planilha do Excel (.xlsx) ou um arquivo .csv.')
       return
     }
     if (file.size > MAX_BYTES) {
-      setErroArquivo('O arquivo passa de 2 MB. Confira se é mesmo a tabela de preços.')
+      setErroArquivo('O arquivo passa de 5 MB. Confira se é mesmo a tabela de preços.')
       return
     }
     try {
-      setLeitura(lerPlanilha(parseCsv(await lerTexto(file))))
+      const { rows, linhas } = excel ? await lerExcel(file) : parseCsvComLinhas(await lerTexto(file))
+      setLeitura(lerPlanilha(rows, linhas))
     } catch {
-      setErroArquivo('Não foi possível ler o arquivo. Tente salvá-lo de novo como CSV.')
+      setErroArquivo(
+        excel
+          ? 'Não foi possível ler a planilha. Confira se o arquivo abre no Excel e se não está protegido por senha.'
+          : 'Não foi possível ler o arquivo. Tente salvá-lo de novo como CSV.',
+      )
     }
   }
 
+  function onSoltar(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setArrastando(false)
+    const file = e.dataTransfer.files[0]
+    if (file) void onArquivo(file)
+  }
+
   async function onImportar() {
-    if (!leitura?.itens.length) return
+    if (!paraImportar.length) return
     setErroImportacao(null)
     try {
-      const r = await importar.mutateAsync(leitura.itens)
+      const r = await importar.mutateAsync(paraImportar)
       const partes = [
         r.criados && `${r.criados} ${r.criados === 1 ? 'produto novo' : 'produtos novos'}`,
         r.atualizados && `${r.atualizados} ${r.atualizados === 1 ? 'atualizado' : 'atualizados'}`,
         r.inalterados && `${r.inalterados} sem mudança`,
       ].filter(Boolean)
       navigate('/tabela-de-precos', { replace: true, state: { notice: `Planilha importada: ${partes.join(', ')}.` } })
-    } catch {
-      setErroImportacao('A importação não foi concluída e nada foi alterado. Verifique sua conexão e tente de novo.')
+    } catch (err) {
+      setErroImportacao(mensagemErroImportacao(err, paraImportar))
     }
   }
 
-  const erros = leitura?.erros ?? []
-  const validos = leitura?.itens.length ?? 0
+  const erros = [...(leitura?.erros ?? []), ...(comparacao?.conflitos ?? [])].toSorted((a, b) => a.linha - b.linha)
+  const validos = comparacao ? paraImportar.length : (leitura?.itens.length ?? 0)
 
   return (
     <>
@@ -116,24 +146,44 @@ export default function ImportarProdutosPage() {
           <li>
             Em <strong>tipo</strong>, use “base” ou “adicional” (vazio vale base). A <strong>categoria</strong> vira a seção do orçamento.
           </li>
-          <li>No Excel, salve como “CSV (separado por ponto e vírgula)”.</li>
+          <li>Anexe a planilha do Excel (.xlsx) do jeito que está, ou um arquivo CSV. Os nomes das colunas podem variar (“Preço unitário”, “Valor”, “Descrição do produto”…).</li>
         </ol>
         <a href={MODELO_HREF} download="modelo-tabela-de-precos.csv" className={buttonClass('outline', 'md', 'self-start no-underline')}>
           <DownloadIcon /> Baixar modelo (CSV)
         </a>
         <div className="flex flex-col gap-2">
           <label htmlFor={inputId} className="text-sm font-semibold text-ink">
-            Planilha (.csv)
+            Planilha (.xlsx ou .csv)
           </label>
-          <input
-            id={inputId}
-            type="file"
-            accept=".csv,text/csv,.txt"
-            onChange={(e) => void onArquivo(e)}
-            aria-describedby={erroArquivo ? `${inputId}-erro` : undefined}
-            aria-invalid={erroArquivo ? true : undefined}
-            className="block w-full max-w-[480px] cursor-pointer rounded-field border-[1.5px] border-dashed border-field bg-surface p-3 text-[15px] text-ink file:mr-3 file:h-11 file:cursor-pointer file:rounded-field file:border-0 file:bg-primary file:px-4 file:font-display file:font-semibold file:text-white hover:border-[#b5cbbf]"
-          />
+          {/* Área de soltar: o input continua sendo o controle acessível (teclado e leitor de tela). */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              setArrastando(true)
+            }}
+            onDragLeave={() => setArrastando(false)}
+            onDrop={onSoltar}
+            className={cn(
+              'flex max-w-[560px] flex-col gap-2 rounded-field border-[1.5px] border-dashed p-4 transition-colors',
+              arrastando ? 'border-primary bg-prod-bg' : 'border-field bg-surface',
+            )}
+          >
+            <input
+              id={inputId}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.csv,text/csv,.txt"
+              onChange={(e) => {
+                void onArquivo(e.target.files?.[0])
+                e.target.value = '' // escolher o mesmo arquivo de novo (após corrigir) dispara a leitura outra vez
+              }}
+              aria-describedby={`${inputId}-dica${erroArquivo ? ` ${inputId}-erro` : ''}`}
+              aria-invalid={erroArquivo ? true : undefined}
+              className="block w-full cursor-pointer text-[15px] text-ink file:mr-3 file:h-11 file:cursor-pointer file:rounded-field file:border-0 file:bg-primary file:px-4 file:font-display file:font-semibold file:text-white"
+            />
+            <p id={`${inputId}-dica`} className="m-0 text-[13px] text-muted">
+              {arquivo ? <>Arquivo: <strong className="text-ink">{arquivo}</strong></> : 'Ou arraste o arquivo para esta área.'}
+            </p>
+          </div>
           {erroArquivo && (
             <p id={`${inputId}-erro`} role="alert" className="m-0 text-sm font-medium text-late-fg">
               {erroArquivo}
@@ -222,7 +272,7 @@ export default function ImportarProdutosPage() {
             <Link to="/tabela-de-precos" className={buttonClass('ghost')}>
               Cancelar
             </Link>
-            <Button disabled={validos === 0} loading={importar.isPending} onClick={() => void onImportar()}>
+            <Button disabled={validos === 0 || carregandoTabela} loading={importar.isPending} onClick={() => void onImportar()}>
               {importar.isPending
                 ? 'Importando…'
                 : validos === 0

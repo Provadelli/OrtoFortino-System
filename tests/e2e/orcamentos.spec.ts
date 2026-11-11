@@ -128,12 +128,15 @@ test('novo orçamento: produtos da tabela, preço editado, item avulso, desconto
   await expect(page.getByText('Inclua pelo menos um item.')).toBeVisible()
 
   await page.getByRole('radio', { name: /Helena Ribeiro/ }).click()
-  const busca = page.getByLabel('Adicionar da tabela de preços')
+  const busca = page.getByRole('combobox', { name: 'Adicionar da tabela de preços' })
+  await busca.click() // ao focar, a tabela inteira aparece agrupada por categoria
+  await expect(page.getByRole('group', { name: 'Adicionais' }).getByRole('option', { name: /Tira valgo/ })).toBeVisible()
   await busca.fill('afo')
-  await expect(page.getByRole('button', { name: /AFO antiga/ })).toHaveCount(0) // inativo não aparece
-  await page.getByRole('button', { name: /AFO articulada/ }).click()
-  await busca.fill('tira')
-  await page.getByRole('button', { name: /Tira valgo/ }).click()
+  await expect(page.getByRole('option', { name: /AFO antiga/ })).toHaveCount(0) // inativo não aparece
+  await page.getByRole('option', { name: /AFO articulada/ }).click()
+  await expect(busca).toHaveValue('')
+  await busca.click()
+  await page.getByRole('option', { name: /Tira valgo/ }).click()
 
   const afo = page.getByRole('group', { name: 'AFO articulada' })
   await expect(afo.getByText(/Tabela: R\$/)).toBeVisible()
@@ -148,7 +151,10 @@ test('novo orçamento: produtos da tabela, preço editado, item avulso, desconto
   await avulso.getByLabel('Seção').pressSequentially('Serviços') // tecla a tecla: o campo não pode perder o foco
   await expect(avulso.getByLabel('Seção')).toBeFocused()
   await avulso.getByLabel('Preço unitário (R$) *').fill('50')
+  await avulso.getByLabel('Preço unitário (R$) *').blur()
+  await expect(avulso.getByLabel('Preço unitário (R$) *')).toHaveValue('50,00')
   await avulso.getByLabel('Quantidade *').fill('2')
+  await page.getByRole('button', { name: 'Validade de 30 dias' }).click()
 
   await page.getByRole('radio', { name: 'Percentual (%)' }).check()
   await page.getByLabel('Desconto (%)').fill('10')
@@ -168,6 +174,8 @@ test('novo orçamento: produtos da tabela, preço editado, item avulso, desconto
   const body = db.rpc('salvar_orcamento') as { p_id: null; p_dados: Record<string, unknown>; p_itens: Record<string, unknown>[] }
   expect(body.p_id).toBeNull()
   expect(body.p_dados).toMatchObject({ paciente_id: PACIENTE.id, desconto_tipo: 'percentual', desconto: 10 })
+  const dados = body.p_dados as { data_emissao: string; validade: string }
+  expect((Date.parse(dados.validade) - Date.parse(dados.data_emissao)) / 86_400_000).toBe(30)
   expect(body.p_itens).toEqual([
     { produto_id: 'p-afo', tipo: 'base', secao: 'Órteses', descricao: 'AFO articulada', detalhe: '', quantidade: 1, unidade: 'par', preco_unitario: 1300, salvar_na_tabela: true },
     { produto_id: 'p-tira', tipo: 'adicional', secao: 'Adicionais', descricao: 'Tira valgo', detalhe: '', quantidade: 1, unidade: 'un', preco_unitario: 80, salvar_na_tabela: false },
@@ -263,8 +271,8 @@ test('rascunho do orçamento: volta com os itens e pode ser descartado', async (
   await mockDb(page)
   await page.goto('/orcamentos/novo')
   await page.getByRole('radio', { name: /Helena Ribeiro/ }).click()
-  await page.getByLabel('Adicionar da tabela de preços').fill('afo')
-  await page.getByRole('button', { name: /AFO articulada/ }).click()
+  await page.getByRole('combobox', { name: 'Adicionar da tabela de preços' }).fill('afo')
+  await page.getByRole('option', { name: /AFO articulada/ }).click()
   await page.getByRole('button', { name: '+ Item avulso' }).click()
   await page.keyboard.type('Ajuste de velcro')
 

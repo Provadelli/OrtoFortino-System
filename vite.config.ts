@@ -31,6 +31,21 @@ function preloadCriticalFonts(): Plugin {
   }
 }
 
+/**
+ * Headers de segurança da produção (vercel.json, rota "/(.*)") aplicados também ao `vite preview`,
+ * onde rodam os testes E2E: assim a CSP real vale nos testes (ex.: o PDF precisa de WebAssembly).
+ * HSTS e upgrade-insecure-requests ficam de fora porque o preview é HTTP em localhost.
+ */
+function productionHeaders() {
+  const cfg = JSON.parse(readFileSync('vercel.json', 'utf8')) as { headers: { source: string; headers: { key: string; value: string }[] }[] }
+  const out: Record<string, string> = {}
+  for (const { key, value } of cfg.headers.find((h) => h.source === '/(.*)')?.headers ?? []) {
+    if (key === 'Strict-Transport-Security') continue
+    out[key] = key === 'Content-Security-Policy' ? value.replace(/;\s*upgrade-insecure-requests/, '') : value
+  }
+  return out
+}
+
 function readEnvFiles(mode: string) {
   const out: Record<string, string> = {}
   for (const file of ['.env', '.env.local', `.env.${mode}`, `.env.${mode}.local`]) {
@@ -62,6 +77,6 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1300,
     },
     server: { port: 5173, strictPort: true },
-    preview: { port: 4173, strictPort: true },
+    preview: { port: 4173, strictPort: true, headers: productionHeaders() },
   }
 })

@@ -173,14 +173,14 @@ isOneToOne: false
                   ]
                 },"pacientes": {
                   Row: {
-                    "cidade": string | null,"consentimento_lgpd_em": string,"consentimento_por": string | null,"cpf": string | null,"created_at": string,"created_by": string | null,"data_nascimento": string | null,"diagnostico": string | null,"endereco": string | null,"id": string,"medico": string | null,"nome": string,"nome_busca": string | null,"observacoes": string | null,"origem": Database["public"]['Enums']["origem_paciente"],"origem_nome": string | null,"telefone": string | null,"uf": string | null,"updated_at": string,"updated_by": string | null
+                    "cep": string | null,"cidade": string | null,"consentimento_lgpd_em": string,"consentimento_por": string | null,"cpf": string | null,"created_at": string,"created_by": string | null,"data_nascimento": string | null,"diagnostico": string | null,"endereco": string | null,"id": string,"medico": string | null,"nome": string,"nome_busca": string | null,"observacoes": string | null,"origem": Database["public"]['Enums']["origem_paciente"],"origem_nome": string | null,"telefone": string | null,"uf": string | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cidade"?: string | null,"consentimento_lgpd_em": string,"consentimento_por"?: string | null,"cpf"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_nascimento"?: string | null,"diagnostico"?: string | null,"endereco"?: string | null,"id"?: string,"medico"?: string | null,"nome": string,"nome_busca"?: never,"observacoes"?: string | null,"origem"?: Database["public"]['Enums']["origem_paciente"],"origem_nome"?: string | null,"telefone"?: string | null,"uf"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "cep"?: string | null,"cidade"?: string | null,"consentimento_lgpd_em": string,"consentimento_por"?: string | null,"cpf"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_nascimento"?: string | null,"diagnostico"?: string | null,"endereco"?: string | null,"id"?: string,"medico"?: string | null,"nome": string,"nome_busca"?: never,"observacoes"?: string | null,"origem"?: Database["public"]['Enums']["origem_paciente"],"origem_nome"?: string | null,"telefone"?: string | null,"uf"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "cidade"?: string | null,"consentimento_lgpd_em"?: string,"consentimento_por"?: string | null,"cpf"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_nascimento"?: string | null,"diagnostico"?: string | null,"endereco"?: string | null,"id"?: string,"medico"?: string | null,"nome"?: string,"nome_busca"?: never,"observacoes"?: string | null,"origem"?: Database["public"]['Enums']["origem_paciente"],"origem_nome"?: string | null,"telefone"?: string | null,"uf"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "cep"?: string | null,"cidade"?: string | null,"consentimento_lgpd_em"?: string,"consentimento_por"?: string | null,"cpf"?: string | null,"created_at"?: string,"created_by"?: string | null,"data_nascimento"?: string | null,"diagnostico"?: string | null,"endereco"?: string | null,"id"?: string,"medico"?: string | null,"nome"?: string,"nome_busca"?: never,"observacoes"?: string | null,"origem"?: Database["public"]['Enums']["origem_paciente"],"origem_nome"?: string | null,"telefone"?: string | null,"uf"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     
@@ -277,6 +277,9 @@ isOneToOne: false
                            },
 "salvar_paciente":
 { Args: { "p_dados": Json,"p_id": string,"p_responsaveis"?: Json }; Returns: string
+                           },
+"sugestoes_paciente":
+{ Args: never; Returns: Json
                            }
           }
           Enums: {

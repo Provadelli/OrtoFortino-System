@@ -7,6 +7,12 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   error?: string
   hint?: ReactNode
   trailing?: ReactNode
+  /** Texto fixo antes do valor (ex.: "R$"). Visual: o rótulo já diz a unidade para leitores de tela. */
+  prefix?: string
+  /** Texto fixo depois do valor (ex.: "%", "dias"). */
+  suffix?: string
+  /** Ações rápidas abaixo do campo (ex.: "Hoje", "+15 dias"). */
+  actions?: ReactNode
 }
 
 export const inputClass = (invalid?: boolean, className?: string) =>
@@ -19,7 +25,7 @@ export const inputClass = (invalid?: boolean, className?: string) =>
 
 /** Campo com rótulo, dica e erro ligados por aria-describedby (WCAG 1.3.1, 3.3.1). */
 export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
-  { label, error, hint, trailing, id, className, ...rest },
+  { label, error, hint, trailing, prefix, suffix, actions, id, className, ...rest },
   ref,
 ) {
   const autoId = useId()
@@ -39,11 +45,22 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={inputClass(!!error, cn(trailing ? 'pr-[52px]' : undefined, className))}
+          className={inputClass(!!error, cn(trailing ? 'pr-[52px]' : undefined, prefix && 'pl-11', suffix && 'pr-14', className))}
           {...rest}
         />
+        {prefix && (
+          <span aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[15px] font-medium text-muted">
+            {prefix}
+          </span>
+        )}
+        {suffix && (
+          <span aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[15px] font-medium text-muted">
+            {suffix}
+          </span>
+        )}
         {trailing}
       </div>
+      {actions && <div className="-mt-0.5 flex flex-wrap gap-1.5">{actions}</div>}
       {hint && (
         <p id={hintId} className="m-0 text-[13px] text-muted">
           {hint}

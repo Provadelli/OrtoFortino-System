@@ -27,5 +27,5 @@ export function db() {
 }
 
 /** Erro do Postgres/PostgREST com código (ex.: 23505 = valor duplicado). */
-export type DbError = { code?: string; message: string }
+export type DbError = { code?: string; message: string; details?: string | null; hint?: string | null }
 export const isDbError = (e: unknown): e is DbError => typeof e === 'object' && e !== null && 'message' in e

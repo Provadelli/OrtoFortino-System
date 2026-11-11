@@ -37,6 +37,12 @@ async function mockDb(page: Page, { vazio = false } = {}) {
     return r.fulfill({ json: PACIENTE.id })
   })
   await page.route('**/rest/v1/pacientes*', (r) => r.fulfill({ json: PACIENTE }))
+  await page.route('**/rest/v1/rpc/sugestoes_paciente', (r) => r.fulfill({ json: { origens: ['Clínica Movimento', 'APAE Nova Iguaçu'], medicos: ['Dra. Ana Souza'] } }))
+  await page.route('https://viacep.com.br/ws/*/json/', (r) => {
+    const cep = new URL(r.request().url()).pathname.split('/')[2]
+    if (cep === '01310100') return r.fulfill({ json: { cep: '01310-100', logradouro: 'Avenida Paulista', bairro: 'Bela Vista', localidade: 'São Paulo', uf: 'SP' } })
+    return r.fulfill({ json: { erro: 'true' } })
+  })
   await page.route('**/rest/v1/atendimentos*', (r) => r.fulfill({ json: [] }))
   await page.route('**/rest/v1/orcamentos*', (r) => r.fulfill({ json: [] }))
   return { salvo: () => salvo }
@@ -107,8 +113,25 @@ test('cadastro completo com responsável salva e abre a ficha', async ({ page })
   await expect(page.getByText(/Idade: \d+ anos/)).toBeVisible()
   await page.getByLabel('Telefone').first().fill('21964973837')
   await expect(page.getByLabel('Telefone').first()).toHaveValue('(21) 96497-3837')
+  // CEP inexistente avisa; CEP válido preenche endereço, cidade e troca a UF (padrão RJ) e leva o cursor ao número.
+  await page.getByLabel('CEP').fill('99999999')
+  await expect(page.getByText('CEP não encontrado.', { exact: false })).toBeVisible()
+  await page.getByLabel('CEP').fill('01310100')
+  await expect(page.getByLabel('CEP')).toHaveValue('01.310-100')
+  await expect(page.getByRole('textbox', { name: 'Endereço' })).toHaveValue('Avenida Paulista - Bela Vista')
+  await expect(page.getByLabel('Cidade')).toHaveValue('São Paulo')
+  await expect(page.getByLabel('UF')).toHaveValue('SP')
+  await expect(page.getByRole('textbox', { name: 'Endereço' })).toBeFocused()
+  await page.keyboard.type(', 1000')
+  await expect(page.getByRole('textbox', { name: 'Endereço' })).toHaveValue('Avenida Paulista, 1000 - Bela Vista')
+
+  // Clínica e médico sugeridos a partir dos cadastros anteriores.
   await page.getByRole('radio', { name: 'Clínica' }).check()
-  await page.getByLabel('Nome da clínica *').fill('Clínica Movimento')
+  await page.getByLabel('Nome da clínica *').fill('apae')
+  await page.getByRole('option', { name: 'APAE Nova Iguaçu' }).click()
+  await expect(page.getByLabel('Nome da clínica *')).toHaveValue('APAE Nova Iguaçu')
+  await page.getByLabel('Médico(a) ou terapeuta').click()
+  await page.getByRole('option', { name: 'Dra. Ana Souza' }).click()
   await page.getByRole('button', { name: '+ Adicionar responsável' }).click()
   await page.getByLabel('Nome *', { exact: true }).fill('Marta Ribeiro')
   await page.getByRole('checkbox', { name: /autorizou o uso dos dados/ }).check()
@@ -119,6 +142,7 @@ test('cadastro completo com responsável salva e abre a ficha', async ({ page })
   const body = db.salvo() as { p_dados: Record<string, unknown>; p_responsaveis: Array<Record<string, unknown>> }
   expect(body.p_dados.cpf).toBe('52998224725') // só dígitos no banco
   expect(body.p_dados.telefone).toBe('21964973837')
+  expect(body.p_dados).toMatchObject({ cep: '01310100', endereco: 'Avenida Paulista, 1000 - Bela Vista', cidade: 'São Paulo', uf: 'SP', origem_nome: 'APAE Nova Iguaçu', medico: 'Dra. Ana Souza' })
   expect(body.p_dados.consentimento).toBe(true)
   expect(body.p_responsaveis[0]).toMatchObject({ nome: 'Marta Ribeiro', principal: true })
 })

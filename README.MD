@@ -224,6 +224,7 @@ orto-fortino/
 | 5 | Orçamentos | ✅ |
 | 6 | PDF do orçamento | ✅ |
 | 7 | Configurações e ajustes | ✅ |
+| 8 | Acabamento: PDF em produção (CSP com WebAssembly) e cabeçalho do emitente, planilhas .xlsx, CEP com ViaCEP, menus de seleção e campos formatados (R$, %, datas) | ✅ |
 
 **Depois do MVP:** PDF da ficha de montagem, envio por WhatsApp/e-mail, anexos (receitas, fotos) e relatórios de faturamento.
 
@@ -239,6 +240,8 @@ O sistema armazena **CPF e dados de saúde**, que são dados sensíveis pela LGP
 - CPF mascarado nas listagens (`***.456.789-**`)
 - Registro de autoria das alterações (`created_at`, `updated_at`, `updated_by`)
 - Consentimento do paciente registrado no cadastro
+- Consulta de CEP (ViaCEP): só os 8 números do CEP saem do sistema, sem cookies nem referer; nenhum dado do paciente é enviado
+- CSP restrita: só o próprio site, o Supabase e o ViaCEP; `wasm-unsafe-eval` libera apenas WebAssembly (gerador de PDF), não `eval` de JavaScript
 - Repositório **privado**
 
 ---

@@ -455,7 +455,8 @@ function BaixarPdf({ o, onErro }: { o: Orcamento; onErro: (msg: string | null) =
       a.click()
       a.remove()
       setTimeout(() => URL.revokeObjectURL(url), 10_000)
-    } catch {
+    } catch (err) {
+      console.error('[pdf]', err)
       onErro('Não foi possível gerar o PDF. Tente de novo.')
     } finally {
       setGerando(false)

@@ -27,6 +27,18 @@ export const EMPRESA_PADRAO: Empresa = {
   email: 'ortofortino@hotmail.com',
 }
 
+/** Bloco do emitente no cabeçalho dos documentos (cada linha já formatada; linhas vazias somem). */
+export function emitente(e: Empresa) {
+  const local = [e.endereco, e.cidade].filter((p) => p && p.trim()).join(', ')
+  return {
+    nome: e.nome,
+    slogan: e.slogan?.trim() || null,
+    cnpj: e.cnpj ? `CNPJ ${formatCnpj(e.cnpj)}` : null,
+    endereco: [local || null, e.cep ? `CEP ${formatCep(e.cep)}` : null].filter(Boolean).join(' · ') || null,
+    contato: [e.telefone ? formatPhone(e.telefone) : null, e.email].filter(Boolean).join(' · ') || null,
+  }
+}
+
 /** Linhas do rodapé dos documentos, já formatadas e sem partes vazias. */
 export function rodapeEmpresa(e: Empresa) {
   const junta = (partes: (string | null | undefined)[]) => partes.filter((p) => p && p.trim()).join(' · ')

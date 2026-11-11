@@ -14,9 +14,9 @@ const dinheiro = (msg: string) =>
   )
 
 /** "2" | "1,5" | "0,5" → número (quantidade aceita vírgula decimal). */
+/** "1", "1,5", "1.000" (milhar) → número; vazio ou inválido → NaN. */
 export function parseQtd(v: string) {
-  const s = v.trim().replace(',', '.')
-  return /^\d+(\.\d{1,2})?$/.test(s) ? Number(s) : Number.NaN
+  return v.trim() === '' ? Number.NaN : parseBRL(v)
 }
 
 export const itemSchema = z.object({

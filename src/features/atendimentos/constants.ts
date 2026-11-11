@@ -106,3 +106,11 @@ export function prazoAlerta(status: StatusAtendimento, prazo: string | null, hoj
   if (prazo === hoje) return { label: 'Entrega hoje', tone: 'today' }
   return null
 }
+
+/** "AFO articulada" + bilateral → "AFO articulada bilateral" (sugestão para a descrição curta). */
+export function descricaoSugerida(produto: string, lateralidade: string | null | undefined) {
+  const p = produto.trim()
+  if (!p) return ''
+  const lado = LATERALIDADES.find((l) => l.value === lateralidade)?.label
+  return lado ? `${p} ${lado.charAt(0).toLowerCase()}${lado.slice(1)}` : p
+}

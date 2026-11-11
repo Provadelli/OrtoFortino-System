@@ -103,12 +103,51 @@ export function parseBRL(value: string) {
   return /^\d+(\.\d{1,2})?$/.test(normalized) ? Number(normalized) : Number.NaN
 }
 
+/**
+ * Formata um valor enquanto é digitado, no padrão contábil brasileiro:
+ * "1250" → "1.250", "1250,5" → "1.250,5", "1.250,507" → "1.250,50".
+ * Aceita colar "R$ 1.250,00" ou "1250.50"; um "." digitado no fim (teclado numérico) vira vírgula.
+ * `casas` = casas decimais permitidas (2 para dinheiro, 2 para quantidade/percentual).
+ */
+export function formatDecimalTyping(raw: string, casas = 2) {
+  let v = raw.replace(/[^\d.,]/g, '')
+  if (!v.includes(',')) {
+    // "12." (tecla do teclado numérico) ou "1250.50"/"0.5" colado: o ponto é a vírgula decimal.
+    // "1.25" (apagou um dígito de "1.250") continua sendo milhar.
+    const m = /^(\d+)\.(\d{1,2})$/.exec(v)
+    if (v.endsWith('.')) v = `${v.slice(0, -1).replace(/\./g, '')},`
+    else if (m && (m[1]!.length > 3 || m[1] === '0')) v = `${m[1]},${m[2]}`
+  }
+  v = v.replace(/\./g, '')
+  const virgula = v.indexOf(',')
+  const inteiro = (virgula < 0 ? v : v.slice(0, virgula)).replace(/,/g, '')
+  const decimais = virgula < 0 ? null : v.slice(virgula + 1).replace(/,/g, '').slice(0, casas)
+  const int = inteiro.replace(/^0+(?=\d)/, '')
+  const agrupado = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  if (decimais === null) return agrupado
+  return `${agrupado || '0'},${decimais}`
+}
+
+/** Ao sair do campo de dinheiro: "1.250" → "1.250,00"; "1.250,5" → "1.250,50"; vazio continua vazio. */
+export function formatMoneyBlur(v: string) {
+  if (v.trim() === '') return ''
+  const n = parseBRL(v.trim().replace(/,$/, ''))
+  return Number.isFinite(n) ? formatMoneyInput(n) : v
+}
+
 /** 1234.5 → "1.234,50" (para preencher campos de valor) */
 export const formatMoneyInput = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /** Data local de hoje em "AAAA-MM-DD" (sem o desvio de fuso do toISOString). */
 export function todayIso(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** "2026-11-10" + 15 dias → "2026-11-25" (sem fuso). */
+export function somarDias(iso: string, dias: number) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(Date.UTC(y!, m! - 1, d! + dias))
+  return dt.toISOString().slice(0, 10)
 }
 
 /** Normaliza texto para busca: minúsculas e sem acento (igual ao nome_busca do banco). */

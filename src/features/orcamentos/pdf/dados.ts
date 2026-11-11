@@ -1,5 +1,5 @@
 import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
-import { EMPRESA_PADRAO, rodapeEmpresa, type Empresa } from '@/lib/empresa'
+import { EMPRESA_PADRAO, emitente, rodapeEmpresa, type Empresa } from '@/lib/empresa'
 import { formatBRL } from '@/lib/format'
 import { agruparSecoes } from '../calc'
 import type { StatusOrcamento } from '../constants'
@@ -106,7 +106,7 @@ export function dadosPdf(o: OrcamentoParaPdf, hoje = new Date(), empresa: Empres
     prazo: o.prazo_entrega,
     observacoes: o.observacoes,
     arquivo: nomeArquivoPdf(o.numero, p?.nome),
-    empresa: { nome: empresa.nome, ...rodapeEmpresa(empresa) },
+    empresa: { ...emitente(empresa), ...rodapeEmpresa(empresa) },
   }
 }
 

@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page, type Route } from '@playwright/test'
+import { gerarXlsx } from '../support/xlsx'
 import { mockAuth } from './fixtures'
 
 const AFO = {
@@ -25,11 +26,12 @@ const HISTORICO = [
 
 const json = (r: Route, body: unknown) => r.fulfill({ json: body })
 
-async function mockDb(page: Page, { vazio = false, erroExcluir = false } = {}) {
+async function mockDb(page: Page, { vazio = false, erroExcluir = false, erroImportar = false } = {}) {
   const chamadas: { metodo: string; corpo: unknown }[] = []
   let importados: unknown = null
   await page.route('**/rest/v1/rpc/importar_produtos', (r) => {
     importados = r.request().postDataJSON()
+    if (erroImportar) return r.fulfill({ status: 409, json: { code: '23505', message: 'duplicado', details: '1', hint: 'nome' } })
     return json(r, { criados: 1, atualizados: 1, inalterados: 0 })
   })
   await page.route('**/rest/v1/produtos*', (r) => {
@@ -97,10 +99,12 @@ test('novo produto valida o preço e salva', async ({ page }) => {
   await page.getByLabel('Nome *').fill('Forro temático')
   await page.getByRole('radio', { name: 'Adicional' }).check()
   await page.getByLabel('Categoria').fill('Personalização')
+  // O campo não aceita mais de 2 casas decimais e completa os centavos ao sair.
   await page.getByLabel('Preço (R$) *').fill('12,345')
+  await expect(page.getByLabel('Preço (R$) *')).toHaveValue('12,34')
+  await page.getByLabel('Preço (R$) *').fill('45')
   await page.getByLabel('Preço (R$) *').blur()
-  await expect(page.getByText('Preço inválido. Use o formato 1.250,00.')).toBeVisible()
-  await page.getByLabel('Preço (R$) *').fill('45,00')
+  await expect(page.getByLabel('Preço (R$) *')).toHaveValue('45,00')
   await axe(page)
 
   await page.getByRole('button', { name: 'Adicionar à tabela' }).click()
@@ -150,7 +154,7 @@ test('importar planilha: prévia, erros por linha e importação', async ({ page
   // Windows-1252, como o Excel em português salva ("Ó" = 0xD3, "ç" = 0xE7, "ã" = 0xE3)
   const csv = 'codigo;nome;tipo;categoria;preco\r\nAFO-01;AFO articulada;base;Órteses;1.300,00\r\n;Forro temático;adicional;Personalização;45\r\n;;base;;10\r\n'
   const bytes = Buffer.from([...csv].map((c) => ({ Ó: 0xd3, ç: 0xe7, ã: 0xe3, á: 0xe1 })[c] ?? c.charCodeAt(0)))
-  await page.getByLabel('Planilha (.csv)').setInputFiles({ name: 'precos.csv', mimeType: 'text/csv', buffer: bytes })
+  await page.getByLabel('Planilha (.xlsx ou .csv)').setInputFiles({ name: 'precos.csv', mimeType: 'text/csv', buffer: bytes })
 
   await expect(page.getByText('2 linhas válidas')).toBeVisible()
   await expect(page.getByText('1 novo', { exact: true })).toBeVisible()
@@ -169,6 +173,54 @@ test('importar planilha: prévia, erros por linha e importação', async ({ page
       { codigo: '', nome: 'Forro temático', tipo: 'adicional', categoria: 'Personalização', unidade: 'un', preco: 45, descricao: '' },
     ],
   })
+})
+
+const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+test('importar planilha do Excel (.xlsx): título acima do cabeçalho, nomes de coluna livres e conflito com a tabela', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  const db = await mockDb(page)
+  await page.goto('/tabela-de-precos/importar')
+  const planilha = gerarXlsx([
+    ['Tabela de preços 2026'],
+    [],
+    ['Cód.', 'Descrição do produto', 'Und.', 'Preço unitário (R$)', 'Grupo'],
+    ['', 'AFO articulada', 'par', 1300, 'Órteses'],
+    ['SMO-02', 'SMO forrada', 'par', 'R$ 890,00', 'Órteses'],
+    ['AFO-01', 'Tira valgo', 'un', 85, 'Adicionais'], // código de um produto, nome de outro
+  ])
+  await page.getByLabel('Planilha (.xlsx ou .csv)').setInputFiles({ name: 'Tabela 2026.xlsx', mimeType: XLSX, buffer: Buffer.from(planilha) })
+
+  await expect(page.getByText('Arquivo: Tabela 2026.xlsx')).toBeVisible()
+  await expect(page.getByText('2 linhas válidas')).toBeVisible()
+  await expect(page.getByText(/Linha 6: o código “AFO-01” é de “AFO articulada”, mas o nome “Tira valgo” já é de outro produto/)).toBeVisible()
+  await expect(page.getByRole('row', { name: /SMO forrada/ })).toContainText('Novo')
+  await axe(page)
+
+  await page.getByRole('button', { name: 'Importar 2 produtos e ignorar 1 linha' }).click()
+  await expect(page).toHaveURL(/\/tabela-de-precos$/)
+  expect(db.importados()).toEqual({
+    p_itens: [
+      { codigo: '', nome: 'AFO articulada', tipo: 'base', categoria: 'Órteses', unidade: 'par', preco: 1300, descricao: '' },
+      { codigo: 'SMO-02', nome: 'SMO forrada', tipo: 'base', categoria: 'Órteses', unidade: 'par', preco: 890, descricao: '' },
+    ],
+  })
+})
+
+test('importar: arquivo de formato antigo é recusado com orientação, e o erro do banco diz a linha', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  await mockDb(page, { erroImportar: true })
+  await page.goto('/tabela-de-precos/importar')
+  const campo = page.getByLabel('Planilha (.xlsx ou .csv)')
+  await campo.setInputFiles({ name: 'antiga.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('x') })
+  await expect(page.getByRole('alert')).toContainText('Pasta de Trabalho do Excel (.xlsx)')
+  await campo.setInputFiles({ name: 'quebrada.xlsx', mimeType: XLSX, buffer: Buffer.from('não é zip') })
+  await expect(page.getByRole('alert')).toContainText('Não foi possível ler a planilha')
+
+  await campo.setInputFiles({ name: 'precos.csv', mimeType: 'text/csv', buffer: Buffer.from('nome;preco\nKAFO novo;2000\n') })
+  await page.getByRole('button', { name: 'Importar 1 produto' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Linha 2 (“KAFO novo”): o nome já pertence a outro produto da tabela. Corrija a planilha e envie de novo. Nada foi alterado.')
+  await expect(page).toHaveURL(/\/importar$/)
 })
 
 test('sem rolagem horizontal da página no celular', async ({ page, isMobile }) => {

@@ -11,6 +11,7 @@ import { StatusChip } from '@/components/ui/StatusChip'
 import { parseBRL } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
+import { dinheiro } from '@/lib/masked'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { toForm, useAlternarAtivo, useExcluirProduto, useProduto, useProdutos, useSalvarProduto, type ProdutoDetalhe } from './api'
@@ -168,8 +169,7 @@ function ProdutoFormInner({ produto }: { produto?: ProdutoDetalhe }) {
           <div className="max-w-[260px]">
             <Field
               label="Preço (R$) *"
-              inputMode="decimal"
-              autoComplete="off"
+              prefix="R$"
               placeholder="0,00"
               error={errors.preco?.message}
               hint={
@@ -179,7 +179,7 @@ function ProdutoFormInner({ produto }: { produto?: ProdutoDetalhe }) {
                   </>
                 ) : undefined
               }
-              {...register('preco')}
+              {...dinheiro(register('preco'))}
             />
           </div>
         </Section>

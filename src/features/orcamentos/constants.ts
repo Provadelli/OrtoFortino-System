@@ -29,9 +29,4 @@ export const vencido = (s: StatusOrcamento, validade: string, hoje: string) => e
 
 export const VALIDADE_PADRAO_DIAS = 15
 
-/** "2026-11-10" + 15 dias → "2026-11-25" (sem fuso). */
-export function somarDias(iso: string, dias: number) {
-  const [y, m, d] = iso.split('-').map(Number)
-  const dt = new Date(Date.UTC(y!, m! - 1, d! + dias))
-  return dt.toISOString().slice(0, 10)
-}
+export { somarDias } from '@/lib/br'

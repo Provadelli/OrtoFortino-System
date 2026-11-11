@@ -25,5 +25,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src", "tests/unit"]
+  "include": ["src", "tests/unit", "tests/support"]
 }

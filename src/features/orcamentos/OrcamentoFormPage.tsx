@@ -1,19 +1,21 @@
-import { Fragment, useEffect, useId, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
+import { Atalhos } from '@/components/ui/Atalhos'
+import { Combobox } from '@/components/ui/Combobox'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, FieldError, Section, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon, CloseIcon, SearchIcon } from '@/components/ui/icons'
 import { PacientePicker } from '@/features/atendimentos/PacientePicker'
 import { useProdutos } from '@/features/produtos/api'
 import { tipoInfo } from '@/features/produtos/schema'
-import { formatMoneyInput, normalizeSearch, parseBRL, todayIso } from '@/lib/br'
-import { cn } from '@/lib/cn'
+import { formatMoneyInput, parseBRL, somarDias, todayIso } from '@/lib/br'
 import { formatBRL } from '@/lib/format'
+import { decimal, dinheiro } from '@/lib/masked'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
@@ -73,11 +75,13 @@ function OrcamentoFormInner({ id, numero, initial, base }: { id?: string; numero
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isSubmitting, isDirty },
   } = form
   const rascunho = useRascunho(form, `orcamento:${id ?? 'novo'}`, initial, base)
   const { fields, append, insert, remove } = useFieldArray({ control, name: 'itens', keyName: 'key' })
-  const [itens, descontoTipo, desconto] = useWatch({ control, name: ['itens', 'desconto_tipo', 'desconto'] })
+  const [itens, descontoTipo, desconto, emissao, validade] = useWatch({ control, name: ['itens', 'desconto_tipo', 'desconto', 'data_emissao', 'validade'] })
+  const [hoje] = useState(todayIso)
 
   const calc = useMemo(
     () =>
@@ -209,8 +213,37 @@ function OrcamentoFormInner({ id, numero, initial, base }: { id?: string; numero
 
       <Section id="sec-condicoes" title="Condições">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Data de emissão *" type="date" error={errors.data_emissao?.message} {...register('data_emissao')} />
-          <Field label="Válido até *" type="date" error={errors.validade?.message} {...register('validade')} />
+          <Field
+            label="Data de emissão *"
+            type="date"
+            error={errors.data_emissao?.message}
+            actions={
+              <Atalhos
+                rotulo="Atalhos: emissão"
+                itens={[{ rotulo: 'Hoje', valor: hoje }]}
+                atual={emissao}
+                onEscolher={(v) => setValue('data_emissao', v, { shouldDirty: true, shouldValidate: true })}
+              />
+            }
+            {...register('data_emissao')}
+          />
+          <Field
+            label="Válido até *"
+            type="date"
+            min={emissao || undefined}
+            error={errors.validade?.message}
+            actions={
+              emissao ? (
+                <Atalhos
+                  rotulo="Atalhos: validade"
+                  itens={[15, 30, 60].map((d) => ({ rotulo: `${d} dias`, valor: somarDias(emissao, d), descricao: `Validade de ${d} dias` }))}
+                  atual={validade}
+                  onEscolher={(v) => setValue('validade', v, { shouldDirty: true, shouldValidate: true })}
+                />
+              ) : undefined
+            }
+            {...register('validade')}
+          />
         </div>
         <div className="flex flex-wrap items-end gap-5">
           <ChoiceGroup legend="Desconto">
@@ -218,14 +251,11 @@ function OrcamentoFormInner({ id, numero, initial, base }: { id?: string; numero
             <Choice label="Percentual (%)" value="percentual" {...register('desconto_tipo')} />
           </ChoiceGroup>
           <div className="w-full max-w-[200px]">
-            <Field
-              label={descontoTipo === 'percentual' ? 'Desconto (%)' : 'Desconto (R$)'}
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder={descontoTipo === 'percentual' ? '0' : '0,00'}
-              error={errors.desconto?.message}
-              {...register('desconto')}
-            />
+            {descontoTipo === 'percentual' ? (
+              <Field key="pct" label="Desconto (%)" suffix="%" placeholder="0" error={errors.desconto?.message} {...decimal(register('desconto'))} />
+            ) : (
+              <Field key="rs" label="Desconto (R$)" prefix="R$" placeholder="0,00" error={errors.desconto?.message} {...dinheiro(register('desconto'))} />
+            )}
           </div>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -318,16 +348,15 @@ function ItemEditor({ index: i, item, total, register, errors, onRemove }: ItemE
           )}
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-[110px_110px_minmax(150px,200px)_1fr] sm:items-start">
-          <Field label="Quantidade *" inputMode="decimal" autoComplete="off" error={e?.quantidade?.message} {...register(`itens.${i}.quantidade`)} />
+          <Field label="Quantidade *" error={e?.quantidade?.message} {...decimal(register(`itens.${i}.quantidade`))} />
           <Field label="Unidade *" autoComplete="off" error={e?.unidade?.message} {...register(`itens.${i}.unidade`)} />
           <Field
             label="Preço unitário (R$) *"
-            inputMode="decimal"
-            autoComplete="off"
+            prefix="R$"
             placeholder="0,00"
             error={e?.preco_unitario?.message}
             hint={item.preco_tabela !== null ? `Tabela: ${formatBRL(item.preco_tabela)}` : undefined}
-            {...register(`itens.${i}.preco_unitario`)}
+            {...dinheiro(register(`itens.${i}.preco_unitario`))}
           />
           <div className="flex flex-col gap-2 sm:items-end">
             <span className="text-sm font-semibold text-ink">Total do item</span>
@@ -345,94 +374,59 @@ function ItemEditor({ index: i, item, total, register, errors, onRemove }: ItemE
   )
 }
 
-/** Busca na tabela de preços (só ativos) e adiciona o produto como item, copiando o preço. */
+/** Menu com a tabela de preços (só ativos, agrupados por categoria): ao escolher, entra como item com o preço da tabela. */
 function AdicionarProduto({ onAdd }: { onAdd: (item: ItemForm) => void }) {
-  const id = useId()
   const [texto, setTexto] = useState('')
   const { data: produtos, isPending, isError } = useProdutos()
-  const q = normalizeSearch(texto)
-  const resultados = useMemo(
+  const ativos = useMemo(
     () =>
-      q
-        ? (produtos ?? [])
-            .filter((p) => p.ativo && ((p.nome_busca ?? normalizeSearch(p.nome)).includes(q) || (p.codigo ?? '').toLowerCase().includes(q) || normalizeSearch(p.categoria ?? '').includes(q)))
-            .slice(0, 8)
-        : [],
-    [produtos, q],
+      (produtos ?? [])
+        .filter((p) => p.ativo)
+        .toSorted((x, y) => (x.categoria ?? 'zzz').localeCompare(y.categoria ?? 'zzz', 'pt-BR') || x.nome.localeCompare(y.nome, 'pt-BR')),
+    [produtos],
+  )
+  const opcoes = useMemo(
+    () =>
+      ativos.map((p) => ({
+        id: p.id,
+        rotulo: p.nome,
+        detalhe: [tipoInfo(p.tipo).label, p.codigo].filter(Boolean).join(' · '),
+        extra: `${formatBRL(p.preco)} /${p.unidade}`,
+        grupo: p.categoria || 'Sem categoria',
+      })),
+    [ativos],
   )
 
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-semibold text-ink">
-        Adicionar da tabela de preços
-      </label>
-      <div className="relative max-w-[560px]">
-        <SearchIcon className="pointer-events-none absolute top-[15px] left-3.5 text-muted" />
-        <input
-          id={id}
-          type="search"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
-          placeholder="Buscar produto por nome, código ou categoria"
-          autoComplete="off"
-          aria-describedby={`${id}-status`}
-          className="h-12 w-full rounded-field border-[1.5px] border-field bg-white pr-3.5 pl-[42px] text-[15px] text-ink hover:border-[#b5cbbf]"
-        />
-      </div>
-      <p id={`${id}-status`} className="m-0 text-[13px] text-muted" aria-live="polite">
-        {isError
-          ? 'Não foi possível carregar a tabela de preços.'
-          : isPending
-            ? 'Carregando a tabela de preços…'
-            : !q
-              ? 'Digite para buscar.'
-              : resultados.length === 0
-                ? 'Nenhum produto ativo encontrado.'
-                : `${resultados.length} produto(s) encontrado(s).`}
-      </p>
-      {resultados.length > 0 && (
-        <ul className="m-0 flex max-w-[560px] list-none flex-col gap-1 p-0">
-          {resultados.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  onAdd({
-                    produto_id: p.id,
-                    tipo: p.tipo,
-                    secao: p.categoria ?? '',
-                    descricao: p.nome,
-                    detalhe: '',
-                    quantidade: '1',
-                    unidade: p.unidade,
-                    preco_unitario: formatMoneyInput(p.preco),
-                    preco_tabela: p.preco,
-                    salvar_na_tabela: false,
-                  })
-                  setTexto('')
-                }}
-                className={cn(
-                  'flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-field border border-line bg-white px-3 py-2 text-left',
-                  'transition-colors hover:border-primary hover:bg-prod-bg',
-                )}
-              >
-                <span className="flex min-w-0 flex-col">
-                  <span className="text-[15px] font-semibold">
-                    <span aria-hidden="true">+ </span>
-                    {p.nome}
-                  </span>
-                  <span className="truncate text-[13px] text-muted">{[tipoInfo(p.tipo).label, p.categoria, p.codigo].filter(Boolean).join(' · ')}</span>
-                </span>
-                <span className="text-[15px] font-semibold whitespace-nowrap tabular-nums">
-                  {formatBRL(p.preco)}
-                  <span className="text-[13px] font-normal text-muted"> /{p.unidade}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="max-w-[560px]">
+      <Combobox
+        label="Adicionar da tabela de preços"
+        value={texto}
+        placeholder="Clique para ver a tabela ou digite para buscar"
+        icone={<SearchIcon />}
+        opcoes={opcoes}
+        limite={200}
+        hint={isError ? 'Não foi possível carregar a tabela de preços.' : isPending ? 'Carregando a tabela de preços…' : `${ativos.length} produto(s) ativo(s) na tabela.`}
+        vazio={ativos.length === 0 ? 'A tabela de preços não tem produtos ativos.' : 'Nenhum produto ativo encontrado.'}
+        onInputChange={setTexto}
+        onEscolher={(o) => {
+          const p = ativos.find((x) => x.id === o.id)
+          if (!p) return
+          onAdd({
+            produto_id: p.id,
+            tipo: p.tipo,
+            secao: p.categoria ?? '',
+            descricao: p.nome,
+            detalhe: '',
+            quantidade: '1',
+            unidade: p.unidade,
+            preco_unitario: formatMoneyInput(p.preco),
+            preco_tabela: p.preco,
+            salvar_na_tabela: false,
+          })
+          setTexto('')
+        }}
+      />
     </div>
   )
 }

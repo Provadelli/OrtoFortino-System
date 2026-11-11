@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams } from 'react-router'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
+import { Combobox } from '@/components/ui/Combobox'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, FieldError, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon, CloseIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
-import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone, UFS } from '@/lib/br'
+import { ageFrom, formatAge, formatCep, formatCpf, formatIsoDate, formatPhone, onlyDigits, UFS } from '@/lib/br'
+import { buscarCep, CepIndisponivel } from '@/lib/cep'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
-import { toForm, usePaciente, useSalvarPaciente } from './api'
+import { toForm, usePaciente, useSalvarPaciente, useSugestoesPaciente } from './api'
 import { masked } from '@/lib/masked'
 import { ORIGENS, pacienteSchema, pacienteVazio, type PacienteForm } from './schema'
 
@@ -55,8 +57,84 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
     control,
     setError,
     setValue,
+    getValues,
     formState: { errors, isSubmitting, isDirty },
   } = form
+  const { data: sugestoes } = useSugestoesPaciente()
+
+  // CEP → endereço, cidade e UF (ViaCEP). Só preenche o que está vazio ou que o próprio CEP preencheu antes.
+  const [cepStatus, setCepStatus] = useState<{ tipo: 'buscando' | 'ok' | 'erro'; texto: string } | null>(null)
+  const [autoCep, setAutoCep] = useState<{ endereco: string; cidade: string; uf: string } | null>(null)
+  const cep = useWatch({ control, name: 'cep' })
+  const [cepInicial] = useState(initial.cep)
+  // Com 8 números (e diferente do CEP já salvo), consulta; trocar de CEP ou sair da tela cancela a consulta anterior.
+  useEffect(() => {
+    const d = onlyDigits(cep)
+    if (d.length !== 8 || d === onlyDigits(cepInicial)) return
+    const ctrl = new AbortController()
+    void consultarCep(d, ctrl)
+    return () => ctrl.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consultarCep lê o formulário na hora; só o CEP dispara a consulta
+  }, [cep, cepInicial])
+
+  async function consultarCep(d: string, ctrl: AbortController) {
+    await Promise.resolve()
+    if (ctrl.signal.aborted) return
+    setCepStatus({ tipo: 'buscando', texto: 'Buscando endereço…' })
+    try {
+      const r = await buscarCep(d, ctrl.signal)
+      if (ctrl.signal.aborted) return
+      if (!r) {
+        setCepStatus({ tipo: 'erro', texto: 'CEP não encontrado. Confira os números ou preencha o endereço à mão.' })
+        return
+      }
+      const pode = (campo: 'endereco' | 'cidade') => {
+        const atual = getValues(campo).trim()
+        return atual === '' || atual === autoCep?.[campo]
+      }
+      const novo = {
+        endereco: [r.logradouro, r.bairro].filter(Boolean).join(' - '),
+        cidade: r.cidade,
+        uf: r.uf,
+      }
+      const opts = { shouldDirty: true, shouldValidate: true }
+      const preenchidos: string[] = []
+      if (novo.endereco && pode('endereco')) {
+        setValue('endereco', novo.endereco, opts)
+        preenchidos.push('endereço')
+      }
+      // A UF acompanha a cidade (a UF vem com RJ por padrão; um CEP de outro estado precisa trocá-la).
+      if (novo.cidade && pode('cidade')) {
+        setValue('cidade', novo.cidade, opts)
+        preenchidos.push('cidade')
+        if (novo.uf) {
+          setValue('uf', novo.uf, opts)
+          preenchidos.push('UF')
+        }
+      }
+      setAutoCep(novo)
+      setCepStatus({
+        tipo: 'ok',
+        texto: preenchidos.length
+          ? `Preenchido pelo CEP: ${preenchidos.join(', ')}. Complete o número e o complemento.`
+          : `CEP de ${[r.cidade, r.uf].filter(Boolean).join(' - ')}. Os campos já preenchidos foram mantidos.`,
+      })
+      // Leva o cursor para logo depois da rua, onde entra o número.
+      if (preenchidos.includes('endereço') && r.logradouro) {
+        const el = document.querySelector<HTMLInputElement>('input[name="endereco"]')
+        if (el) {
+          el.focus()
+          el.setSelectionRange(r.logradouro.length, r.logradouro.length)
+        }
+      }
+    } catch (e) {
+      if (ctrl.signal.aborted) return
+      setCepStatus({
+        tipo: 'erro',
+        texto: e instanceof CepIndisponivel ? 'Não foi possível consultar o CEP agora. Preencha o endereço à mão.' : 'Não foi possível consultar o CEP.',
+      })
+    }
+  }
   const rascunho = useRascunho(form, `paciente:${id ?? 'novo'}`, initial, base)
   const { fields, append, remove } = useFieldArray({ control, name: 'responsaveis', keyName: 'key' })
   const [origem, nascimento, responsaveis] = useWatch({ control, name: ['origem', 'data_nascimento', 'responsaveis'] })
@@ -157,10 +235,29 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
         </div>
       </Section>
 
-      <Section id="sec-endereco" title="Endereço">
+      <Section id="sec-endereco" title="Endereço" description="Digite o CEP para preencher o endereço automaticamente.">
         <div className="grid gap-5 sm:grid-cols-[1fr_1fr_120px]">
+          <div className="sm:col-span-1">
+            <Field
+              label="CEP"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="00.000-000"
+              error={errors.cep?.message}
+              hint={
+                cepStatus ? (
+                  <span role="status" className={cepStatus.tipo === 'erro' ? 'font-medium text-late-fg' : cepStatus.tipo === 'ok' ? 'text-prod-fg' : undefined}>
+                    {cepStatus.texto}
+                  </span>
+                ) : (
+                  'Não sabe o CEP? Preencha o endereço normalmente.'
+                )
+              }
+              {...masked(register('cep', { onChange: (e) => onlyDigits(e.target.value).length !== 8 && setCepStatus(null) }), formatCep)}
+            />
+          </div>
           <div className="sm:col-span-3">
-            <Field label="Endereço" autoComplete="off" placeholder="Rua, número, complemento, bairro" error={errors.endereco?.message} {...register('endereco')} />
+            <Field label="Endereço" autoComplete="off" placeholder="Rua, número, complemento - bairro" error={errors.endereco?.message} {...register('endereco')} />
           </div>
           <div className="sm:col-span-2">
             <Field label="Cidade" autoComplete="off" error={errors.cidade?.message} {...register('cidade')} />
@@ -185,10 +282,48 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
         <div className="grid gap-5 sm:grid-cols-2">
           {origem !== 'particular' && (
             <div className="animate-fade">
-              <Field label={`${origemNomeLabel} *`} autoComplete="off" error={errors.origem_nome?.message} {...register('origem_nome')} />
+              <Controller
+                control={control}
+                name="origem_nome"
+                render={({ field, fieldState }) => (
+                  <Combobox
+                    ref={field.ref}
+                    name={field.name}
+                    label={`${origemNomeLabel} *`}
+                    value={field.value}
+                    placeholder="Escolha ou digite"
+                    error={fieldState.error?.message}
+                    opcoes={(sugestoes?.origens ?? []).map((v) => ({ id: v, rotulo: v }))}
+                    textoLivre
+                    vazio="Nenhum cadastro anterior com esse nome."
+                    onInputChange={field.onChange}
+                    onEscolher={(o) => field.onChange(o.rotulo)}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
             </div>
           )}
-          <Field label="Médico(a) ou terapeuta" autoComplete="off" error={errors.medico?.message} {...register('medico')} />
+          <Controller
+            control={control}
+            name="medico"
+            render={({ field, fieldState }) => (
+              <Combobox
+                ref={field.ref}
+                name={field.name}
+                label="Médico(a) ou terapeuta"
+                value={field.value}
+                placeholder="Escolha ou digite"
+                error={fieldState.error?.message}
+                opcoes={(sugestoes?.medicos ?? []).map((v) => ({ id: v, rotulo: v }))}
+                textoLivre
+                vazio="Nenhum cadastro anterior com esse nome."
+                onInputChange={field.onChange}
+                onEscolher={(o) => field.onChange(o.rotulo)}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
         </div>
         <TextareaField label="Diagnóstico" error={errors.diagnostico?.message} {...register('diagnostico')} />
         <TextareaField label="Observações" error={errors.observacoes?.message} {...register('observacoes')} />

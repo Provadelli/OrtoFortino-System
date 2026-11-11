@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { db } from '@/lib/supabase'
-import { formatCpf, formatPhone } from '@/lib/br'
+import { formatCep, formatCpf, formatPhone } from '@/lib/br'
 import { toPayload, type PacienteForm } from './schema'
 
 export const PAGE_SIZE = 25
@@ -50,6 +50,7 @@ export function toForm(p: Paciente): PacienteForm {
     cpf: p.cpf ? formatCpf(p.cpf) : '',
     data_nascimento: p.data_nascimento ?? '',
     telefone: p.telefone ? formatPhone(p.telefone) : '',
+    cep: p.cep ? formatCep(p.cep) : '',
     endereco: p.endereco ?? '',
     cidade: p.cidade ?? '',
     uf: p.uf ?? '',
@@ -98,5 +99,20 @@ export function useExcluirPaciente() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.all }),
+  })
+}
+
+/** Clínicas/operadoras e médicos já usados em outros cadastros (para sugerir no formulário). */
+export function useSugestoesPaciente() {
+  return useQuery({
+    queryKey: ['pacientes', 'sugestoes'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await db().rpc('sugestoes_paciente')
+      if (error) throw error
+      const r = (data ?? {}) as { origens?: unknown; medicos?: unknown }
+      const lista = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+      return { origens: lista(r.origens), medicos: lista(r.medicos) }
+    },
   })
 }

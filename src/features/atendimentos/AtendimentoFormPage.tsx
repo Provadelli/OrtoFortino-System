@@ -4,19 +4,22 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
+import { Atalhos } from '@/components/ui/Atalhos'
+import { Combobox } from '@/components/ui/Combobox'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { StatusChip } from '@/components/ui/StatusChip'
-import { parseBRL, todayIso } from '@/lib/br'
+import { parseBRL, somarDias, todayIso } from '@/lib/br'
+import { dinheiro } from '@/lib/masked'
 import { formatBRL } from '@/lib/format'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
 import { useConfiguracoes } from '@/features/configuracoes/api'
 import { toForm, useAtendimento, useSalvarAtendimento } from './api'
-import { CATEGORIAS, ESPECIFICACOES, FORMAS, LATERALIDADES, PAGAMENTO, PRODUTOS, STATUS, TIPOS, type StatusPagamento } from './constants'
+import { CATEGORIAS, descricaoSugerida, ESPECIFICACOES, FORMAS, LATERALIDADES, PAGAMENTO, PRODUTOS, STATUS, TIPOS, type StatusPagamento } from './constants'
 import { PacientePicker } from './PacientePicker'
 import { atendimentoSchema, atendimentoVazio, type AtendimentoForm } from './schema'
 
@@ -40,6 +43,8 @@ export default function AtendimentoFormPage() {
   const initial = data ? toForm(data) : atendimentoVazio(params.get('paciente') ?? '', hoje)
   return <Inner key={id ?? 'novo'} id={id} numero={data?.numero} initial={initial} hoje={hoje} base={data?.updated_at ?? null} />
 }
+
+const PRAZOS = [15, 20, 30, 45]
 
 function statusPagamento(valor: number, pago: number): StatusPagamento {
   if (!(valor > 0)) return 'isento'
@@ -69,14 +74,50 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
     handleSubmit,
     control,
     setValue,
+    getValues,
     formState: { errors, isSubmitting, isDirty },
   } = form
+  const definir = (campo: 'descricao' | 'data_primeiro_contato' | 'data_fechamento' | 'data_conclusao' | 'prazo_entrega' | 'data_pagamento' | 'valor_pago', v: string) =>
+    setValue(campo, v, { shouldDirty: true, shouldValidate: true })
+  // Descrição curta sugerida a partir do produto + lateralidade, enquanto o usuário não escrever a dele.
+  const [descricaoAuto, setDescricaoAuto] = useState<string | null>(() =>
+    initial.descricao && initial.descricao === descricaoSugerida(initial.ficha?.produto ?? '', initial.ficha?.lateralidade) ? initial.descricao : null,
+  )
+  function sugerirDescricao(produto: string, lateralidade: string | null | undefined) {
+    const atual = getValues('descricao').trim()
+    if (atual !== '' && atual !== descricaoAuto) return
+    const nova = descricaoSugerida(produto, lateralidade)
+    setDescricaoAuto(nova)
+    definir('descricao', nova)
+  }
   const rascunho = useRascunho(form, `atendimento:${id ?? 'novo'}`, initial, base)
 
-  const [categoria, comFicha, tipo, compLado, nomeNaOrtese, valor, valorPago] = useWatch({
+  const [categoria, comFicha, tipo, compLado, nomeNaOrtese, valor, valorPago, primeiroContato, prazo, status, dataPagamento] = useWatch({
     control,
-    name: ['categoria', 'com_ficha', 'ficha.tipo', 'ficha.compensacao_lado', 'ficha.nome_na_ortese', 'valor', 'valor_pago'],
+    name: [
+      'categoria',
+      'com_ficha',
+      'ficha.tipo',
+      'ficha.compensacao_lado',
+      'ficha.nome_na_ortese',
+      'valor',
+      'valor_pago',
+      'data_primeiro_contato',
+      'prazo_entrega',
+      'status',
+      'data_pagamento',
+    ],
   })
+  // Prazos contam a partir de hoje (ou do primeiro contato, se for futuro).
+  const basePrazo = primeiroContato && primeiroContato > hoje ? primeiroContato : hoje
+  // Mesma regra do gatilho do banco, já visível no formulário: o status avança e a data aparece.
+  const aoMudarStatus = (novo: string) => {
+    if (['em_producao', 'pronto', 'entregue'].includes(novo) && !getValues('data_fechamento')) definir('data_fechamento', basePrazo)
+    if (novo === 'entregue' && !getValues('data_conclusao')) definir('data_conclusao', basePrazo)
+  }
+  const aoMudarPago = (v: string) => {
+    if (parseBRL(v) > 0 && !getValues('data_pagamento')) definir('data_pagamento', hoje)
+  }
   const pg = PAGAMENTO[statusPagamento(parseBRL(valor), parseBRL(valorPago))]
   const restante = Math.max(0, (parseBRL(valor) || 0) - (parseBRL(valorPago) || 0))
 
@@ -142,23 +183,54 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
           ))}
         </ChoiceGroup>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Descrição curta" placeholder="Ex.: AFO articulada bilateral" autoComplete="off" error={errors.descricao?.message} {...register('descricao')} />
-          <SelectField label="Status *" {...register('status')}>
-            {STATUS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </SelectField>
+          <Field
+            label="Descrição curta"
+            placeholder="Ex.: AFO articulada bilateral"
+            hint={comFicha ? 'Sugerida pelo produto e lateralidade da ficha; pode editar.' : undefined}
+            autoComplete="off"
+            error={errors.descricao?.message}
+            {...register('descricao')}
+          />
         </div>
+        <ChoiceGroup
+          legend="Status *"
+          hint={status !== 'em_contato' && status !== 'cancelado' ? 'Fechamento e conclusão recebem a data de hoje quando estão vazios.' : undefined}
+        >
+          {STATUS.map((st) => (
+            <Choice key={st.value} label={st.label} value={st.value} {...register('status', { onChange: (e) => aoMudarStatus(e.target.value) })} />
+          ))}
+        </ChoiceGroup>
       </Section>
 
       <Section id="sec-datas" title="Datas" description="Fechamento e conclusão são preenchidos sozinhos quando o status avança.">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Primeiro contato *" type="date" max={hoje} error={errors.data_primeiro_contato?.message} {...register('data_primeiro_contato')} />
-          <Field label="Fechamento" type="date" error={errors.data_fechamento?.message} {...register('data_fechamento')} />
-          <Field label="Prazo de entrega" type="date" error={errors.prazo_entrega?.message} {...register('prazo_entrega')} />
-          <Field label="Conclusão" type="date" error={errors.data_conclusao?.message} {...register('data_conclusao')} />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label="Primeiro contato *"
+            type="date"
+            max={hoje}
+            error={errors.data_primeiro_contato?.message}
+            actions={
+              <Atalhos rotulo="Atalhos: contato" itens={[{ rotulo: 'Hoje', valor: hoje }]} atual={primeiroContato} onEscolher={(v) => definir('data_primeiro_contato', v)} />
+            }
+            {...register('data_primeiro_contato')}
+          />
+          <Field
+            label="Prazo de entrega"
+            type="date"
+            min={primeiroContato || undefined}
+            error={errors.prazo_entrega?.message}
+            actions={
+              <Atalhos
+                rotulo="Atalhos: prazo"
+                itens={PRAZOS.map((d) => ({ rotulo: `+${d} dias`, valor: somarDias(basePrazo, d), descricao: `Prazo de ${d} dias` }))}
+                atual={prazo}
+                onEscolher={(v) => definir('prazo_entrega', v)}
+              />
+            }
+            {...register('prazo_entrega')}
+          />
+          <Field label="Fechamento" type="date" min={primeiroContato || undefined} error={errors.data_fechamento?.message} {...register('data_fechamento')} />
+          <Field label="Conclusão" type="date" min={primeiroContato || undefined} error={errors.data_conclusao?.message} {...register('data_conclusao')} />
         </div>
       </Section>
 
@@ -178,28 +250,48 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
 
             {tipo !== 'protese' ? (
               <>
+                <div className="grid gap-5 sm:grid-cols-[2fr_1fr]">
+                  <Controller
+                    control={control}
+                    name="ficha.produto"
+                    render={({ field, fieldState }) => (
+                      <Combobox
+                        ref={field.ref}
+                        name={field.name}
+                        label="Produto"
+                        value={field.value ?? ''}
+                        placeholder="Escolha da lista ou digite"
+                        hint="A lista pode ser editada em Configurações."
+                        error={fieldState.error?.message}
+                        opcoes={produtosFicha.map((p) => ({ id: p, rotulo: p }))}
+                        textoLivre
+                        vazio="Nenhum produto da lista com esse nome."
+                        onInputChange={(v) => field.onChange(v)}
+                        onEscolher={(o) => {
+                          field.onChange(o.rotulo)
+                          sugerirDescricao(o.rotulo, getValues('ficha.lateralidade'))
+                        }}
+                        onBlur={field.onBlur}
+                      />
+                    )}
+                  />
+                  <Field label="Tamanho do calçado" autoComplete="off" inputMode="decimal" placeholder="Ex.: 28" error={errors.ficha?.tamanho_calcado?.message} {...register('ficha.tamanho_calcado')} />
+                </div>
                 <ChoiceGroup legend="Lateralidade">
                   {LATERALIDADES.map((l) => (
-                    <Choice key={l.value} label={l.label} value={l.value} {...register('ficha.lateralidade')} />
+                    <Choice
+                      key={l.value}
+                      label={l.label}
+                      value={l.value}
+                      {...register('ficha.lateralidade', {
+                        onChange: (e) => {
+                          const produto = getValues('ficha.produto') ?? ''
+                          if (produto.trim()) sugerirDescricao(produto, e.target.value)
+                        },
+                      })}
+                    />
                   ))}
                 </ChoiceGroup>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field
-                    label="Produto"
-                    list="lista-produtos"
-                    autoComplete="off"
-                    placeholder="Escolha ou digite"
-                    hint="Sugestões da ficha em papel; aceita texto livre."
-                    error={errors.ficha?.produto?.message}
-                    {...register('ficha.produto')}
-                  />
-                  <datalist id="lista-produtos">
-                    {produtosFicha.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </datalist>
-                  <Field label="Tamanho do calçado" autoComplete="off" inputMode="numeric" error={errors.ficha?.tamanho_calcado?.message} {...register('ficha.tamanho_calcado')} />
-                </div>
 
                 <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
                   <legend className="mb-2 p-0 text-sm font-semibold text-ink">Especificações</legend>
@@ -223,7 +315,7 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
                   )}
                 </div>
 
-                <TextareaField label="Medidas ML" rows={2} error={errors.ficha?.medidas_ml?.message} {...register('ficha.medidas_ml')} />
+                <TextareaField label="Medidas ML" rows={2} hint="Ex.: tornozelo 22 cm, panturrilha 28 cm, pé 18 cm." error={errors.ficha?.medidas_ml?.message} {...register('ficha.medidas_ml')} />
 
                 <fieldset className="m-0 flex min-w-0 flex-col gap-4 rounded-field border border-line p-4">
                   <legend className="px-1 text-sm font-semibold text-ink">Personalização</legend>
@@ -256,7 +348,7 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Liner" autoComplete="off" error={errors.ficha?.liner?.message} {...register('ficha.liner')} />
-                  <Field label="Tamanho do pé" autoComplete="off" error={errors.ficha?.tamanho_pe?.message} {...register('ficha.tamanho_pe')} />
+                  <Field label="Tamanho do pé" autoComplete="off" inputMode="decimal" placeholder="Ex.: 25 cm" error={errors.ficha?.tamanho_pe?.message} {...register('ficha.tamanho_pe')} />
                 </div>
               </>
             )}
@@ -267,8 +359,14 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
 
       <Section id="sec-pag" title="Pagamento">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Valor (R$)" inputMode="decimal" autoComplete="off" placeholder="0,00" error={errors.valor?.message} {...register('valor')} />
-          <Field label="Valor pago (R$)" inputMode="decimal" autoComplete="off" placeholder="0,00" error={errors.valor_pago?.message} {...register('valor_pago')} />
+          <Field label="Valor (R$)" prefix="R$" placeholder="0,00" error={errors.valor?.message} {...dinheiro(register('valor'))} />
+          <Field
+            label="Valor pago (R$)"
+            prefix="R$"
+            placeholder="0,00"
+            error={errors.valor_pago?.message}
+            {...dinheiro(register('valor_pago', { onChange: (e) => aoMudarPago(e.target.value) }))}
+          />
           <div className="flex flex-col gap-2" aria-live="polite">
             <span className="text-sm font-semibold text-ink">Situação</span>
             <div className="flex min-h-[50px] flex-wrap items-center gap-2">
@@ -287,10 +385,24 @@ function Inner({ id, numero, initial, hoje, base }: { id?: string; numero?: numb
             ))}
           </SelectField>
           <Field label="Detalhe" placeholder="Ex.: 3x no cartão, entrada + 2x" autoComplete="off" error={errors.pagamento_detalhe?.message} {...register('pagamento_detalhe')} />
-          <Field label="Data do pagamento" type="date" error={errors.data_pagamento?.message} {...register('data_pagamento')} />
+          <Field
+            label="Data do pagamento"
+            type="date"
+            max={hoje}
+            error={errors.data_pagamento?.message}
+            actions={<Atalhos rotulo="Atalhos: pagamento" itens={[{ rotulo: 'Hoje', valor: hoje }]} atual={dataPagamento} onEscolher={(v) => definir('data_pagamento', v)} />}
+            {...register('data_pagamento')}
+          />
         </div>
         {parseBRL(valor) > 0 && parseBRL(valorPago) < parseBRL(valor) && (
-          <Button variant="ghost" className="self-start" onClick={() => setValue('valor_pago', valor, { shouldDirty: true, shouldValidate: true })}>
+          <Button
+            variant="ghost"
+            className="self-start"
+            onClick={() => {
+              definir('valor_pago', valor)
+              aoMudarPago(valor)
+            }}
+          >
             Marcar como pago integralmente
           </Button>
         )}
