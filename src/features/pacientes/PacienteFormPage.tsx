@@ -399,7 +399,7 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
         )}
       </Section>
 
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border">
+      <div className="sticky bottom-0 z-10 -mx-4 -mb-12 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-white/95 px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur sm:mx-0 sm:rounded-card sm:border sm:pb-3">
         <Link to={editing ? `/clientes/${id}` : '/clientes'} className={buttonClass('ghost')}>
           Cancelar
         </Link>

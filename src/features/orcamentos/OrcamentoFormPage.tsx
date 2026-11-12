@@ -293,7 +293,7 @@ function OrcamentoFormInner({ id, numero, initial, base }: { id?: string; numero
         </dl>
       </section>
 
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border">
+      <div className="sticky bottom-0 z-10 -mx-4 -mb-12 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-white/95 px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur sm:mx-0 sm:rounded-card sm:border sm:pb-3">
         <span className="mr-auto text-[15px]">
           Total <strong className="text-[19px] tabular-nums">{formatBRL(calc.total)}</strong>
         </span>

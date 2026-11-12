@@ -165,7 +165,7 @@ main[data-secao] h1::after {
 @layer base {
   /* Hover suave em tudo que é clicável, mesmo sem classe transition-* (as classes têm prioridade) */
   a, button, summary, label, select, textarea, input, [role='tab'], [role='option'] {
-    transition-property: color, background-color, border-color, box-shadow, text-decoration-color, opacity;
+    transition-property: color, background-color, border-color, box-shadow, text-decoration-color, opacity, transform;
     transition-duration: 280ms;
     transition-timing-function: var(--ease-out-soft);
   }
@@ -194,12 +194,6 @@ main[data-secao] h1::after {
     border-radius: 6px;
   }
 
-  /* Movimento suave padrão em controles (cada componente pode refinar) */
-  a, button, summary, [role='option'] {
-    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
-    transition-duration: 180ms;
-    transition-timing-function: var(--ease-out-soft);
-  }
   input:focus-visible {
     outline-offset: 1px;
     border-color: var(--color-primary);
