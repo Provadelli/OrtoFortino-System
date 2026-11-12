@@ -13,7 +13,7 @@ export default function AppShell() {
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-dvh flex-col bg-surface lg:flex-row">
         <Sidebar />
-        <main id="conteudo" tabIndex={-1} data-secao={secaoDe(pathname)} className="relative isolate flex min-w-0 flex-1 justify-center overflow-x-clip outline-none">
+        <main id="conteudo" tabIndex={-1} data-secao={secaoDe(pathname)} className="relative isolate flex min-w-0 flex-1 justify-center overflow-clip outline-none">
           {/* Rabiscos de giz na cor da seção, atrás do conteúdo */}
           <Rabisco
             forma="espiral"

@@ -16,13 +16,13 @@ export function Card({ className, children, ...rest }: HTMLAttributes<HTMLElemen
 export function CardHeader({ title, id, action }: { title: string; id: string; action?: { to: string; label: string; srLabel: string } | ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 id={id} className="m-0 text-[19px] font-semibold">
+      <h2 id={id} className="m-0 min-w-0 text-[19px] font-semibold">
         {title}
       </h2>
       {action && typeof action === 'object' && 'to' in action ? (
         <Link
           to={action.to}
-          className="-my-2 inline-flex min-h-11 items-center rounded-md px-1 text-sm font-semibold text-primary-ink no-underline hover:underline"
+          className="-my-2 inline-flex min-h-11 shrink-0 items-center rounded-md px-1 text-sm font-semibold whitespace-nowrap text-primary-ink no-underline hover:underline"
         >
           {action.label}
           <span className="sr-only"> {action.srLabel}</span>

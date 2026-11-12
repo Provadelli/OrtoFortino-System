@@ -109,7 +109,7 @@ export function BarraLista({ nome, busca, grupos, ativos, onAlternar, onLimpar, 
           aria-controls={`${id}-painel`}
           onClick={() => setAberto((v) => !v)}
           className={cn(
-            'inline-flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-field border-[1.5px] px-4 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-300 active:scale-[0.98]',
+            'inline-flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-field border-[1.5px] px-4 text-[15px] font-semibold transition-[background-color,border-color,color,transform,translate,scale] duration-300 active:scale-[0.98]',
             aberto || ativos.length ? 'border-primary bg-prod-bg text-prod-fg' : 'border-field-soft bg-white text-ink hover:border-field-hover hover:bg-surface-hover',
           )}
         >
@@ -143,7 +143,7 @@ export function BarraLista({ nome, busca, grupos, ativos, onAlternar, onLimpar, 
                       aria-pressed={on}
                       onClick={() => onAlternar(o.valor)}
                       className={cn(
-                        'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-3.5 text-sm font-semibold transition-[background-color,border-color,color,transform,box-shadow] duration-300 active:scale-[0.97]',
+                        'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-3.5 text-sm font-semibold transition-[background-color,border-color,color,transform,translate,scale,box-shadow] duration-300 active:scale-[0.97]',
                         on ? 'border-primary bg-white text-ink shadow-sm' : 'border-field-soft bg-white/70 text-ink-soft hover:border-field-hover hover:text-ink',
                       )}
                     >

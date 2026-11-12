@@ -71,22 +71,22 @@
   --default-transition-duration: 280ms;
   --default-transition-timing-function: var(--ease-out-soft);
 
-  --animate-rise: rise 520ms var(--ease-out-soft) both;
-  --animate-fade: fade 400ms ease-out both;
-  --animate-grow-x: grow-x 900ms var(--ease-out-soft) both;
+  --animate-rise: rise 520ms var(--ease-out-soft) backwards;
+  --animate-fade: fade 400ms ease-out backwards;
+  --animate-grow-x: grow-x 900ms var(--ease-out-soft) backwards;
   --animate-spin-slow: spin 160s linear infinite;
   --animate-shake: shake 360ms ease-in-out;
-  --animate-drop: drop 240ms var(--ease-out-soft) both;
-  --animate-pop: pop 200ms var(--ease-out-soft) both;
+  --animate-drop: drop 240ms var(--ease-out-soft) backwards;
+  --animate-pop: pop 200ms var(--ease-out-soft) backwards;
   --animate-nudge: nudge 380ms var(--ease-out-soft);
-  --animate-sway: sway 1400ms var(--ease-out-soft) 300ms both;
+  --animate-sway: sway 1400ms var(--ease-out-soft) 300ms backwards;
   --animate-ring: ring 1600ms ease-out 400ms 2;
-  --animate-dot: dot 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-dot: dot 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   /* Cena do login: giro lento das espirais e "respiração" das faixas */
   --animate-gira: spin 90s linear infinite;
   --animate-gira-inverso: spin 120s linear infinite reverse;
   --animate-flutua: flutua 7s ease-in-out infinite alternate;
-  --animate-chega: chega 900ms var(--ease-out-soft) both;
+  --animate-chega: chega 900ms var(--ease-out-soft) backwards;
 
   @keyframes flutua {
     from { transform: translate3d(0, 0, 0) rotate(0deg); }
@@ -165,7 +165,7 @@ main[data-secao] h1::after {
 @layer base {
   /* Hover suave em tudo que é clicável, mesmo sem classe transition-* (as classes têm prioridade) */
   a, button, summary, label, select, textarea, input, [role='tab'], [role='option'] {
-    transition-property: color, background-color, border-color, box-shadow, text-decoration-color, opacity, transform;
+    transition-property: color, background-color, border-color, box-shadow, text-decoration-color, opacity, transform, translate, scale;
     transition-duration: 280ms;
     transition-timing-function: var(--ease-out-soft);
   }
@@ -213,9 +213,17 @@ main[data-secao] h1::after {
 }
 
 /* Hover suave das seções (cards do Painel): só uma sombra baixa e difusa que aparece devagar. */
+/* (Tailwind 4 move com a propriedade `translate`, por isso ela entra na transição) */
 @utility hover-suave {
-  transition: box-shadow 500ms var(--ease-out-soft), transform 500ms var(--ease-out-soft);
-  &:hover { box-shadow: 0 14px 30px -20px rgb(31 42 46 / 0.3); }
+  transition-property: box-shadow, translate, transform;
+  transition-duration: 450ms;
+  transition-timing-function: var(--ease-out-soft);
+  &:hover { box-shadow: 0 16px 32px -22px rgb(31 42 46 / 0.32); }
+}
+/* Métrica: além da sombra, sobe 2 px */
+@utility hover-sobe {
+  &:hover { translate: 0 -2px; }
+  @media (hover: hover) { &:hover { will-change: translate; } }
 }
 /* Linha de lista com fundo suave ao passar o mouse */
 @utility linha-suave {

@@ -33,11 +33,20 @@ function useContador(alvo: number, ms = 900) {
  */
 export function Recebimentos({ style }: { style?: CSSProperties }) {
   const [aba, setAba] = useState<Aba>('30d')
-  const { data, isPending, isError } = useRecebimentos(aba)
+  const { data, isPending, isError, isPlaceholderData } = useRecebimentos(aba)
   const base = useId()
   const [sobre, setSobre] = useState<number | null>(null)
+  // Pontos sobem em onda só na primeira exibição; nas trocas de período o gráfico só faz um fade.
+  const [primeira, setPrimeira] = useState(true)
+  const indice = ABAS.findIndex((a) => a.id === aba)
+  function trocar(nova: Aba) {
+    if (nova === aba) return
+    setPrimeira(false)
+    setSobre(null)
+    setAba(nova)
+  }
   const total = useContador(data?.totalAtual ?? 0)
-  const info = ABAS.find((a) => a.id === aba)!
+  const info = ABAS.find((a) => a.id === (data?.aba ?? aba))!
 
   const maior = Math.max(0, ...(data?.colunas.map((c) => c.valor) ?? [0]))
   const metade = (data?.colunas.length ?? 0) / 2
@@ -49,7 +58,7 @@ export function Recebimentos({ style }: { style?: CSSProperties }) {
     if (prox === null) return
     e.preventDefault()
     const nova = ABAS[(prox + ABAS.length) % ABAS.length]!
-    setAba(nova.id)
+    trocar(nova.id)
     document.getElementById(`${base}-aba-${nova.id}`)?.focus()
   }
 
@@ -75,7 +84,13 @@ export function Recebimentos({ style }: { style?: CSSProperties }) {
             )}
           </p>
         </div>
-        <div role="tablist" aria-label="Período" className="flex gap-1 rounded-full bg-surface p-1">
+        <div role="tablist" aria-label="Período" className="relative grid grid-cols-3 rounded-full bg-surface p-1">
+          {/* pílula branca que desliza até o período escolhido */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-1 left-1 w-[calc((100%-8px)/3)] rounded-full bg-white shadow-sm transition-transform duration-[450ms] ease-[var(--ease-out-soft)]"
+            style={{ transform: `translateX(${indice * 100}%)` }}
+          />
           {ABAS.map((a) => (
             <button
               key={a.id}
@@ -85,11 +100,11 @@ export function Recebimentos({ style }: { style?: CSSProperties }) {
               aria-selected={aba === a.id}
               aria-controls={`${base}-painel`}
               tabIndex={aba === a.id ? 0 : -1}
-              onClick={() => setAba(a.id)}
+              onClick={() => trocar(a.id)}
               onKeyDown={teclas}
               className={cn(
-                'min-h-9 cursor-pointer rounded-full px-3 text-[13px] font-semibold transition-[background-color,color,box-shadow] duration-200',
-                aba === a.id ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink',
+                'relative min-h-9 cursor-pointer rounded-full px-3 text-[13px] font-semibold whitespace-nowrap transition-colors duration-300',
+                aba === a.id ? 'text-ink' : 'text-muted hover:text-ink',
               )}
             >
               {a.rotulo}
@@ -115,9 +130,13 @@ export function Recebimentos({ style }: { style?: CSSProperties }) {
               </div>
             )}
             <div
-              key={aba}
+              key={data.aba}
               aria-hidden="true"
-              className="group/grafico flex h-[120px] items-end gap-px sm:gap-[3px]"
+              className={cn(
+                'group/grafico flex h-[120px] items-end gap-px transition-opacity duration-300 sm:gap-[3px]',
+                !primeira && 'animate-fade',
+                isPlaceholderData && 'opacity-50',
+              )}
               onMouseLeave={() => setSobre(null)}
             >
               {data.colunas.map((c, i) => {
@@ -138,7 +157,8 @@ export function Recebimentos({ style }: { style?: CSSProperties }) {
                         <span
                           key={k}
                           className={cn(
-                            'size-[3px] shrink-0 rounded-full animate-dot transition-transform duration-300 sm:size-[5px]',
+                            'size-[3px] shrink-0 rounded-full transition-[scale] duration-300 sm:size-[5px]',
+                            primeira && 'animate-dot',
                             c.periodo === 'atual' ? 'bg-primary' : 'bg-[#c4d2cb]',
                             sobre === i && 'scale-150',
                           )}
@@ -158,25 +178,29 @@ export function Recebimentos({ style }: { style?: CSSProperties }) {
                 {info.atual} · {formatBRL(data.totalAtual)}
               </span>
             </div>
-            <table className="sr-only">
-              <caption>
-                Recebido por {aba === '12m' ? 'mês' : 'dia'}: {info.atual} e {info.anterior}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">{aba === '12m' ? 'Mês' : 'Dia'}</th>
-                  <th scope="col">Valor recebido</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.colunas.slice(metade).map((c) => (
-                  <tr key={c.chave}>
-                    <th scope="row">{c.rotulo}</th>
-                    <td>{formatBRL(c.valor)}</td>
+            {/* Tabela para leitores de tela. Fica dentro de um div sr-only: uma <table> não respeita
+                a altura de 1 px e esticava a página com uma linha por dia. */}
+            <div className="sr-only">
+              <table>
+                <caption>
+                  Recebido por {data.aba === '12m' ? 'mês' : 'dia'}: {info.atual} e {info.anterior}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{data.aba === '12m' ? 'Mês' : 'Dia'}</th>
+                    <th scope="col">Valor recebido</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.colunas.slice(metade).map((c) => (
+                    <tr key={c.chave}>
+                      <th scope="row">{c.rotulo}</th>
+                      <td>{formatBRL(c.valor)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <p className="m-0 mt-3 text-xs text-muted">Pelo valor pago e a data do pagamento registrados em cada atendimento.</p>
           </>
         )}

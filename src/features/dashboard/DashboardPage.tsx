@@ -74,12 +74,15 @@ export default function DashboardPage() {
               />
             </form>
           </search>
-          <Link to="/clientes/novo" className={buttonClass('outline')}>
-            + Novo paciente
-          </Link>
-          <Link to="/orcamentos/novo" className={buttonClass('primary')}>
-            + Novo orçamento
-          </Link>
+          {/* no celular os dois botões dividem a linha de baixo da busca */}
+          <div className="flex flex-[1_1_100%] gap-3 sm:flex-none">
+            <Link to="/clientes/novo" className={cn(buttonClass('outline'), 'flex-1 max-sm:px-3 sm:flex-none')}>
+              + Novo paciente
+            </Link>
+            <Link to="/orcamentos/novo" className={cn(buttonClass('primary'), 'flex-1 max-sm:px-3 sm:flex-none')}>
+              + Novo orçamento
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -161,7 +164,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
 
   return (
     <>
-      <section aria-labelledby="titulo-resumo" className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+      <section aria-labelledby="titulo-resumo" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <h2 id="titulo-resumo" className="sr-only">
           Resumo
         </h2>
@@ -170,7 +173,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             key={k.label}
             style={delay(i)}
             data-secao={k.cor}
-            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger hover-suave hover:-translate-y-px"
+            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger hover-suave hover-sobe"
           >
             <Rabisco
               forma={k.forma}
@@ -181,20 +184,21 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
               )}
             />
             <h3 className="m-0 flex items-center gap-2.5 pr-10 font-sans text-sm font-semibold text-(--secao-fg)">{k.label}</h3>
-            <p className="m-0 font-display text-[32px] leading-[1.1] font-bold tabular-nums">{k.value}</p>
+            <p className="m-0 font-display text-[clamp(26px,2.6vw,32px)] leading-[1.1] font-bold whitespace-nowrap tabular-nums">{k.value}</p>
             <p className={cn('m-0 text-[13px] font-medium', k.alert ? 'text-late-fg' : 'text-muted')}>{k.sub}</p>
           </article>
         ))}
       </section>
 
-      {/* Duas colunas de mesma altura no desktop (sem buraco embaixo da menor); uma coluna no celular/tablet. */}
-      <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
-        <Card aria-labelledby="titulo-prazos" className="hover-suave gap-2" style={delay(4)}>
+      {/* Desktop: a coluna da direita define a altura da linha e a lista de prazos acompanha
+          (rola por dentro se precisar), então nenhuma das duas sobra vazia. Celular/tablet: uma coluna. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+        <Card aria-labelledby="titulo-prazos" className="hover-suave gap-2 lg:h-0 lg:min-h-full" style={delay(4)}>
           <CardHeader id="titulo-prazos" title="Próximos prazos de entrega" action={{ to: '/atendimentos', label: 'Ver todos', srLabel: 'os atendimentos em andamento' }} />
           {p.prazos.length === 0 ? (
             <p className="m-0 border-t border-line-soft pt-4 text-muted">Nenhum atendimento em andamento com prazo definido.</p>
           ) : (
-            <ul className="m-0 list-none p-0">
+            <ul className="m-0 list-none p-0 lg:-mx-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:px-2 [scrollbar-width:thin]">
               {p.prazos.map((a) => {
                 const chip = prazoAlerta(a.status, a.prazo_entrega, hoje) ?? statusInfo(a.status)
                 const nome = shortName(a.paciente)
@@ -224,19 +228,14 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
               })}
             </ul>
           )}
-          {/* Rodapé: ocupa o espaço que sobra com o resumo do que está em andamento */}
-          <div className="relative mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 overflow-hidden rounded-field bg-mint-wash px-4 py-3 pr-24 text-[13px] text-ink-soft">
-            <span>
-              <strong className="font-semibold text-ink tabular-nums">{p.em_producao}</strong> em produção
-            </span>
-            <span>
-              <strong className="font-semibold text-ink tabular-nums">{p.prontos}</strong> {p.prontos === 1 ? 'pronto' : 'prontos'} para entrega
-            </span>
-            <span className={cn(p.atrasados > 0 && 'font-medium text-late-fg')}>
-              <strong className="font-semibold tabular-nums">{p.atrasados}</strong> {p.atrasados === 1 ? 'atrasado' : 'atrasados'}
-            </span>
-            <Rabisco forma="laco" className="absolute top-1/2 -right-4 h-6 w-[110px] -translate-y-1/2 bg-giz-verde opacity-60" />
-          </div>
+          {/* atalho no fim do card: quando há poucos prazos, ancora o espaço em vez de deixá-lo solto */}
+          <Link
+            to="/atendimentos"
+            className="group mt-auto hidden items-center justify-between gap-3 rounded-field bg-mint-wash px-4 py-3 text-sm font-semibold text-primary-ink no-underline hover:bg-prod-bg lg:flex"
+          >
+            Ver todos os atendimentos em andamento
+            <span aria-hidden="true" className="transition-[translate] duration-300 group-hover:translate-x-0.5">→</span>
+          </Link>
         </Card>
 
         <div className="flex min-w-0 flex-col gap-4">
@@ -260,7 +259,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             </ul>
           </Card>
 
-          <Card aria-labelledby="titulo-receber" className="hover-suave gap-1 lg:flex-1" style={delay(6)}>
+          <Card aria-labelledby="titulo-receber" className="hover-suave gap-1" style={delay(6)}>
             <div className="mb-2">
               <CardHeader id="titulo-receber" title="A receber" action={{ to: '/atendimentos?filtro=pagamento', label: 'Ver todos', srLabel: 'os pagamentos a receber' }} />
             </div>

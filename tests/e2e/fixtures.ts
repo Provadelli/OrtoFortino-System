@@ -72,3 +72,55 @@ export async function mockPainel(page: Page, opts: { body?: unknown; status?: nu
     return r.fulfill({ json: [{ dia: d.toISOString().slice(0, 10), total: '250' }, { dia: p_ate, total: '500' }] })
   })
 }
+
+/** Paciente e atendimento de exemplo (formato do PostgREST, com ficha técnica). */
+export const PACIENTE = {
+  id: '11111111-1111-4111-8111-111111111111',
+  nome: 'Helena Ribeiro',
+  data_nascimento: '2018-05-10',
+  telefone: '21964973837',
+}
+
+export const ATENDIMENTO = {
+  id: '22222222-2222-4222-8222-222222222222',
+  numero: 7,
+  paciente_id: PACIENTE.id,
+  categoria: 'confeccao',
+  descricao: 'AFO articulada bilateral',
+  status: 'em_producao',
+  data_primeiro_contato: '2026-11-01',
+  data_fechamento: '2026-11-03',
+  prazo_entrega: '2020-01-10', // no passado → "Atrasado"
+  data_conclusao: null,
+  valor: 1250,
+  valor_pago: 500,
+  pagamento_status: 'parcial',
+  pagamento_forma: 'pix',
+  pagamento_detalhe: 'entrada + 2x',
+  data_pagamento: '2026-11-03',
+  observacoes: null,
+  created_at: '2026-11-01T12:00:00Z',
+  updated_at: '2026-11-03T12:00:00Z',
+  pacientes: PACIENTE,
+  fichas_tecnicas: {
+    tipo: 'ortese',
+    lateralidade: 'bilateral',
+    produto: 'AFO articulada',
+    especificacoes: ['90°', 'Tira valgo'],
+    compensacao_lado: null,
+    compensacao_medida: null,
+    tamanho_calcado: '28',
+    medidas_ml: null,
+    nome_na_ortese: true,
+    tema: 'dinossauros',
+    cor_forro: 'azul',
+    cor_tira: null,
+    protese_membro: null,
+    protese_nivel: null,
+    protese_lado: null,
+    liner: null,
+    tamanho_pe: null,
+    observacoes: null,
+    medidas: { 'pernas.d_sup': '24', 'pernas.e_sup': '23,5', 'pernas.total': '30' },
+  },
+}
