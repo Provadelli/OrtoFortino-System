@@ -184,20 +184,16 @@ test('novo atendimento: escolhe paciente, preenche ficha e salva', async ({ page
   await expect(page.getByLabel('Descrição curta')).toHaveValue('AFO articulada bilateral')
   await page.getByRole('checkbox', { name: 'Tira valgo' }).check()
 
-  // Boneco: clicar no círculo leva ao campo; a medida preenche o círculo e o contador.
-  await expect(page.getByText('0 de 10 medidas')).toBeVisible()
-  await page.getByRole('button', { name: 'Circunferência superior, perna direita: vazio' }).click()
-  await expect(page.getByRole('textbox', { name: 'Circunferência superior, perna direita' })).toBeFocused()
-  await page.keyboard.type('24,5')
-  await expect(page.getByRole('button', { name: 'Circunferência superior, perna direita: 24,5 cm' })).toBeVisible()
-  await expect(page.getByText('1 de 10 medidas')).toBeVisible()
-  await page.getByRole('textbox', { name: 'Altura total' }).fill('30')
-  // Unilateral direita: o lado esquerdo sai do desenho e da contagem.
-  await page.getByRole('textbox', { name: 'Circunferência superior, perna esquerda' }).fill('23')
-  await page.getByRole('radio', { name: /Unilateral.*D/ }).check()
-  await expect(page.getByText('2 de 6 medidas')).toBeVisible()
-  await expect(page.getByRole('textbox', { name: 'Circunferência superior, perna esquerda' })).toHaveCount(0)
+  // Prévia ao lado dos campos: reage à lateralidade e às cores escritas.
+  const previa = page.getByRole('img', { name: /^Prévia:/ })
+  await expect(previa).toHaveAccessibleName(/AFO articulada, bilateral/)
+  await page.getByRole('radio', { name: 'Unilateral D' }).check()
+  await expect(previa).toHaveAccessibleName(/lado direito/)
   await page.getByRole('radio', { name: 'Bilateral' }).check()
+  await page.getByLabel('Cor do forro').fill('azul claro')
+  await expect(previa).toHaveAccessibleName(/forro azul claro/)
+  await expect(page.getByText('Forro azul claro')).toBeVisible()
+  await page.getByLabel('Medidas', { exact: true }).fill('Panturrilha 24 cm')
 
   // Status avança e o fechamento aparece; atalho de prazo.
   await page.getByRole('radio', { name: 'Em produção' }).check()
@@ -250,8 +246,7 @@ test('novo atendimento: escolhe paciente, preenche ficha e salva', async ({ page
     pagamento_parcelas: '3',
   })
   expect(String(body.p_dados.prazo_entrega)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-  expect(body.p_ficha).toMatchObject({ tipo: 'ortese', lateralidade: 'bilateral', produto: 'AFO articulada', especificacoes: ['Tira valgo'] })
-  expect(body.p_ficha.medidas).toEqual({ 'pernas.d_sup': '24,5', 'pernas.e_sup': '23', 'pernas.total': '30' })
+  expect(body.p_ficha).toMatchObject({ tipo: 'ortese', lateralidade: 'bilateral', produto: 'AFO articulada', especificacoes: ['Tira valgo'], cor_forro: 'azul claro', medidas_ml: 'Panturrilha 24 cm' })
 })
 
 test('ficha do paciente lista os atendimentos', async ({ page }) => {

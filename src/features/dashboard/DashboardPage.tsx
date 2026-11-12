@@ -12,6 +12,8 @@ import { formatBRL, formatLongDate, greeting, initials, shortName } from '@/lib/
 import { usePageTitle } from '@/lib/usePageTitle'
 import { STATUS_ORCAMENTO, vencido } from '@/features/orcamentos/constants'
 import { Recebimentos } from './Recebimentos'
+import { Rabisco, type FormaRabisco } from '@/components/ui/Rabisco'
+import type { Secao } from '@/lib/secoes'
 import { usePainel, type Painel } from './api'
 
 const delay = (i: number) => ({ '--i': i }) as CSSProperties
@@ -98,12 +100,14 @@ export default function DashboardPage() {
 }
 
 function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
-  const kpis: { label: string; value: string; sub: ReactNode; dot: string; alert?: boolean }[] = [
+  const kpis: { label: string; value: string; sub: ReactNode; dot: string; cor: Secao; forma: FormaRabisco; alert?: boolean }[] = [
     {
       label: 'Em produção',
       value: String(p.em_producao),
       sub: p.prontos ? `${plural(p.prontos, 'pronto', 'prontos')} para entrega` : 'Nenhum pronto para entrega',
       dot: 'bg-brand-mint',
+      cor: 'painel',
+      forma: 'espiral',
     },
     {
       label: 'Entregas nos próximos 7 dias',
@@ -116,6 +120,8 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
         'Nenhuma atrasada'
       ),
       dot: 'bg-brand-orange',
+      cor: 'precos',
+      forma: 'laco',
       alert: p.atrasados > 0,
     },
     {
@@ -123,6 +129,8 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
       value: formatBRL(p.a_receber),
       sub: p.pagamentos_abertos ? plural(p.pagamentos_abertos, 'pagamento pendente', 'pagamentos pendentes') : 'Tudo recebido',
       dot: 'bg-brand-pink',
+      cor: 'atendimentos',
+      forma: 'estrela',
     },
     {
       label: 'Orçamentos em aberto',
@@ -137,6 +145,8 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
         'Nenhum aguardando resposta'
       ),
       dot: 'bg-brand-yellow',
+      cor: 'orcamentos',
+      forma: 'espiral',
       alert: p.orcamentos_vencidos > 0,
     },
   ]
@@ -159,12 +169,18 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
           <article
             key={k.label}
             style={delay(i)}
-            className="flex flex-col gap-2.5 rounded-card border border-line bg-white p-5 animate-rise stagger transition-shadow duration-200 hover:shadow-[0_6px_24px_-12px_rgb(31_122_92/0.25)]"
+            data-secao={k.cor}
+            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgb(31_42_46/0.35)]"
           >
-            <h3 className="m-0 flex items-center gap-2.5 font-sans text-sm font-semibold text-ink-soft">
-              <span aria-hidden="true" className={cn('size-3 rounded-full', k.dot)} />
-              {k.label}
-            </h3>
+            <Rabisco
+              forma={k.forma}
+              cor="var(--secao)"
+              className={cn(
+                'absolute -z-10 opacity-70',
+                k.forma === 'espiral' ? '-top-10 -right-10 size-[120px]' : k.forma === 'laco' ? 'top-4 -right-6 h-7 w-[120px]' : 'top-3 right-3 size-9 rotate-12',
+              )}
+            />
+            <h3 className="m-0 flex items-center gap-2.5 pr-10 font-sans text-sm font-semibold text-(--secao-fg)">{k.label}</h3>
             <p className="m-0 font-display text-[32px] leading-[1.1] font-bold tabular-nums">{k.value}</p>
             <p className={cn('m-0 text-[13px] font-medium', k.alert ? 'text-late-fg' : 'text-muted')}>{k.sub}</p>
           </article>

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router'
-import { BrandStripe } from '@/components/brand/BrandStripe'
+import { CenaRabiscos } from '@/components/ui/Rabisco'
 import { buttonClass } from '@/components/ui/Button'
 import { ArrowLeftIcon } from '@/components/ui/icons'
 import { useSession } from '@/features/auth/useSession'
@@ -15,8 +15,8 @@ export default function NotFoundPage() {
   const logado = !!session
 
   return (
-    <main id="conteudo" className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-mint-wash px-4 py-16 text-center">
-      <div aria-hidden="true" className="sunburst pointer-events-none absolute -inset-[60%] animate-spin-slow will-change-transform" />
+    <main id="conteudo" className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#f3f4f2] px-4 py-16 text-center">
+      <CenaRabiscos />
 
       <div className="relative flex max-w-[460px] flex-col items-center gap-5">
         <div className="relative animate-sway">
@@ -53,7 +53,6 @@ export default function NotFoundPage() {
         </p>
       </div>
 
-      <BrandStripe className="absolute inset-x-0 bottom-0 h-2" />
     </main>
   )
 }

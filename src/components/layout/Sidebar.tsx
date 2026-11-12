@@ -7,6 +7,7 @@ import { logout } from '@/features/auth/auth-client'
 import { useSession } from '@/features/auth/useSession'
 import { cn } from '@/lib/cn'
 import { limparRascunhos } from '@/lib/rascunho'
+import { secaoDe } from '@/lib/secoes'
 import { linkSuporte } from '@/lib/suporte'
 
 type Item = { to: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }
@@ -74,28 +75,36 @@ export function Sidebar() {
           {destaque && (
             <li
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 rounded-field bg-prod-bg transition-[transform,height] duration-300 ease-[var(--ease-out-soft)]"
+              data-secao={secaoDe(pathname)}
+              className="pointer-events-none absolute inset-x-0 top-0 rounded-full bg-(--secao-bg) transition-[transform,height,background-color] duration-300 ease-[var(--ease-out-soft)]"
               style={{ transform: `translateY(${destaque.top}px)`, height: destaque.height }}
             />
           )}
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <li key={to} className="relative">
+            <li key={to} className="relative" data-secao={secaoDe(to)}>
               <NavLink
                 to={to}
                 viewTransition
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'group flex min-h-11 items-center gap-3 rounded-field px-3.5 text-[15px] no-underline transition-colors duration-200',
+                    'group flex min-h-11 items-center gap-3 rounded-full px-3.5 text-[15px] no-underline transition-colors duration-200',
                     isActive
-                      ? cn('font-semibold text-prod-fg', !destaque && 'bg-prod-bg')
+                      ? cn('font-semibold text-(--secao-fg)', !destaque && 'bg-(--secao-bg)')
                       : 'font-medium text-ink-soft hover:bg-surface-hover hover:text-ink',
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <Icon className={cn('shrink-0 transition-transform duration-200 group-hover:translate-x-0.5', isActive && 'animate-nudge')} />
+                    <span
+                      className={cn(
+                        'flex size-8 shrink-0 items-center justify-center rounded-full text-(--secao-fg) transition-[background-color,transform] duration-200 group-hover:translate-x-0.5',
+                        isActive ? 'bg-white animate-nudge' : 'bg-(--secao-bg)',
+                      )}
+                    >
+                      <Icon className="size-[18px]" />
+                    </span>
                     {label}
                   </>
                 )}

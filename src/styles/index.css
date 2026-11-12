@@ -13,10 +13,17 @@
   --color-brand-mint: #8fd5b4;
   --color-mint-wash: #f3fbf7;
 
-  /* Ação (contraste AA sobre branco) */
-  --color-primary: #1f7a5c;
-  --color-primary-hover: #17604a;
-  --color-primary-ink: #17604a;
+  /* Giz de cera (rabiscos do site da Orto Fortino): só decoração, nunca texto */
+  --color-giz-rosa: #ff2a6d;
+  --color-giz-amarelo: #f5b82e;
+  --color-giz-lilas: #a78bfa;
+  --color-giz-verde: #35d97a;
+  --color-giz-laranja: #ff9a3c;
+
+  /* Ação: verde-sálvia dos botões do site (contraste AA com texto branco) */
+  --color-primary: #3d7a64;
+  --color-primary-hover: #30624f;
+  --color-primary-ink: #2c5c4a;
   --color-link-pink: #a3005a;
   --color-link-pink-hover: #7a0044;
 
@@ -116,6 +123,26 @@
   }
 }
 
+/* ───────────── Cores por seção (menu, títulos e rabiscos) ─────────────
+   --secao: cor viva do giz (decoração); --secao-bg: fundo claro; --secao-fg: texto/ícone (AA sobre o fundo). */
+[data-secao] { --secao: var(--color-brand-mint); --secao-bg: #e8f3ee; --secao-fg: #2c5c4a; }
+[data-secao='painel'] { --secao: var(--color-giz-verde); --secao-bg: #e2f6e9; --secao-fg: #1c6a43; }
+[data-secao='clientes'] { --secao: var(--color-giz-lilas); --secao-bg: #f0ebff; --secao-fg: #5636c0; }
+[data-secao='atendimentos'] { --secao: var(--color-giz-rosa); --secao-bg: #ffe8ef; --secao-fg: #ad0f3e; }
+[data-secao='orcamentos'] { --secao: var(--color-giz-amarelo); --secao-bg: #fff3d4; --secao-fg: #765300; }
+[data-secao='precos'] { --secao: var(--color-giz-laranja); --secao-bg: #ffeddc; --secao-fg: #934600; }
+
+/* Sublinhado de giz nos títulos das páginas, na cor da seção */
+main[data-secao] h1::after {
+  content: '';
+  display: block;
+  width: 88px;
+  height: 12px;
+  margin-top: 4px;
+  background: var(--secao);
+  mask: url('/rabiscos/sublinhado.svg') left center / contain no-repeat;
+}
+
 /* ───────────── Base ───────────── */
 @layer base {
   html {
@@ -159,6 +186,14 @@
 }
 
 /* Raios de sol do painel de login (o canvas usa repeating-conic-gradient) */
+/* Rabisco de giz: a forma vem da máscara (style), a cor do background. */
+@utility rabisco {
+  pointer-events: none;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
 @utility sunburst {
   background: repeating-conic-gradient(from 0deg at 50% 50%, rgb(143 213 180 / 0.55) 0deg 0.5deg, transparent 0.5deg 6deg);
 }

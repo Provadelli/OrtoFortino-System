@@ -14,7 +14,6 @@ import {
   SelectField,
   TextareaField,
 } from "@/components/ui/FormControls";
-import { Etapas } from "@/components/ui/Etapas";
 import { MapaSecoes } from "@/components/ui/MapaSecoes";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
@@ -42,7 +41,7 @@ import {
   type FormaPagamento,
   type StatusPagamento,
 } from "./constants";
-import { MedidasFicha } from "./ficha/MedidasFicha";
+import { FichaVisualAoVivo } from "./ficha/FichaVisual";
 import { PacientePicker } from "./PacientePicker";
 import {
   atendimentoSchema,
@@ -86,7 +85,6 @@ export default function AtendimentoFormPage() {
 }
 
 const PRAZOS = [15, 20, 30, 45];
-const FLUXO = STATUS.filter((s) => s.value !== "cancelado");
 
 const GRUPOS_FORMA = [
   { grupo: "vista", titulo: "À vista" },
@@ -207,8 +205,6 @@ function Inner({
     forma,
     parcelas,
     produtoFicha,
-    lateralidadeFicha,
-    medidasFicha,
     pacienteId,
     observacoes,
   ] = useWatch({
@@ -228,8 +224,6 @@ function Inner({
       "pagamento_forma",
       "pagamento_parcelas",
       "ficha.produto",
-      "ficha.lateralidade",
-      "ficha.medidas",
       "paciente_id",
       "observacoes",
     ],
@@ -414,12 +408,6 @@ function Inner({
             {...register("descricao")}
           />
         </div>
-        <Etapas
-          className="max-w-[560px] rounded-field bg-surface/70 px-2 py-4"
-          atual={status === "cancelado" ? -1 : FLUXO.findIndex((s) => s.value === status)}
-          cancelado={status === "cancelado"}
-          etapas={FLUXO.map((s) => ({ label: s.label }))}
-        />
         <ChoiceGroup
           legend="Status *"
           hint={
@@ -514,6 +502,9 @@ function Inner({
 
         {comFicha && (
           <div className="flex flex-col gap-5 animate-fade">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <FichaVisualAoVivo control={control} className="lg:sticky lg:top-16 lg:order-last" />
+          <div className="flex min-w-0 flex-col gap-5">
             <ChoiceGroup legend="Tipo *">
               {TIPOS.map((t) => (
                 <Choice
@@ -633,9 +624,9 @@ function Inner({
                 </div>
 
                 <TextareaField
-                  label="Anotações das medidas"
-                  rows={2}
-                  hint="O que não couber no desenho abaixo."
+                  label="Medidas"
+                  rows={3}
+                  hint="Ex.: panturrilha 24 cm, tornozelo 19 cm, ML 6 cm, altura 30 cm."
                   error={errors.ficha?.medidas_ml?.message}
                   {...register("ficha.medidas_ml")}
                 />
@@ -733,13 +724,8 @@ function Inner({
                 </div>
               </>
             )}
-            <MedidasFicha
-              tipo={tipo}
-              produto={produtoFicha ?? ""}
-              lateralidade={lateralidadeFicha ?? ""}
-              medidas={medidasFicha}
-              register={register}
-            />
+          </div>
+          </div>
             <TextareaField
               label="Observações da ficha"
               error={errors.ficha?.observacoes?.message}

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BrandStripe } from '@/components/brand/BrandStripe'
+import { CenaRabiscos } from '@/components/ui/Rabisco'
 import { Logo } from '@/components/brand/Logo'
 import { LockIcon } from '@/components/ui/icons'
 import { formatPhone } from '@/lib/br'
@@ -35,11 +35,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-wrap bg-white">
       <aside
         aria-label="Orto Fortino"
-        className="relative flex min-h-[340px] flex-[1_1_520px] flex-col items-center justify-center overflow-hidden bg-mint-wash px-8 py-12 sm:min-h-[440px]"
+        className="relative flex min-h-[340px] flex-[1_1_520px] flex-col items-center justify-center overflow-hidden bg-[#f3f4f2] px-8 py-12 sm:min-h-[440px]"
       >
-        <div aria-hidden="true" className="pointer-events-none absolute -inset-[60%] animate-fade">
-          <div className="sunburst size-full animate-spin-slow will-change-transform" />
-        </div>
+        <CenaRabiscos />
         <div className="relative flex flex-col items-start">
           <div className="animate-rise stagger [--i:1]">
             <Logo className="w-[clamp(240px,26vw,340px)]" />
@@ -48,7 +46,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             Fichas, atendimentos e orçamentos da oficina, do primeiro contato à entrega.
           </p>
         </div>
-        <BrandStripe className="absolute inset-x-0 bottom-0 h-2" />
       </aside>
 
       <main id="conteudo" className="flex flex-[1_1_420px] flex-col items-center justify-center gap-8 px-4 py-12 sm:px-6">

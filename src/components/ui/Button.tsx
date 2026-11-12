@@ -5,19 +5,19 @@ type Variant = 'primary' | 'outline' | 'ghost' | 'danger'
 type Size = 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary-hover shadow-[0_1px_0_rgb(0_0_0/0.04)]',
+  primary: 'bg-primary text-white hover:bg-primary-hover shadow-[0_6px_16px_-8px_rgb(61_122_100/0.7)] hover:shadow-[0_8px_20px_-8px_rgb(61_122_100/0.8)]',
   outline: 'border-[1.5px] border-primary bg-white text-primary-ink hover:bg-prod-bg',
   ghost: 'bg-transparent text-primary-ink hover:bg-surface-hover',
   danger: 'bg-late-fg text-white hover:bg-link-pink-hover',
 }
 const sizes: Record<Size, string> = {
-  md: 'h-12 px-[18px] text-[15px]',
-  lg: 'h-[54px] px-6 text-[17px]',
+  md: 'h-12 px-5 text-[15px]',
+  lg: 'h-[54px] px-7 text-[17px]',
 }
 
 export const buttonClass = (variant: Variant = 'primary', size: Size = 'md', className?: string) =>
   cn(
-    'inline-flex items-center justify-center gap-2 rounded-field font-display font-semibold whitespace-nowrap',
+    'inline-flex items-center justify-center gap-2 rounded-full font-display font-semibold whitespace-nowrap',
     'cursor-pointer transition-[background-color,transform,box-shadow] duration-150 ease-out active:scale-[0.98]',
     'disabled:cursor-not-allowed disabled:opacity-70 aria-busy:cursor-progress',
     variants[variant],

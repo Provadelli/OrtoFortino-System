@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useOrcamentoDoAtendimento } from '@/features/orcamentos/api'
-import { MedidasLeitura } from './ficha/MedidasLeitura'
+import { FichaVisual } from './ficha/FichaVisual'
 import { fichaDe, useAtendimento, useExcluirAtendimento, useMudarStatus } from './api'
 import { CATEGORIAS, descreverPagamento, label, LATERALIDADES, PAGAMENTO, prazoAlerta, PROXIMO, STATUS, statusInfo, TIPOS, type StatusAtendimento } from './constants'
 
@@ -165,7 +165,9 @@ export default function AtendimentoPage() {
               </Link>
             </p>
           ) : (
-            <dl className="m-0 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+            <FichaVisual f={f} className="lg:order-last" />
+            <dl className="m-0 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               <Item label="Tipo">{label(TIPOS, f.tipo)}</Item>
               {f.tipo === 'protese' ? (
                 <>
@@ -180,7 +182,7 @@ export default function AtendimentoPage() {
                   <Item label="Lateralidade">{label(LATERALIDADES, f.lateralidade)}</Item>
                   <Item label="Produto">{f.produto ?? '—'}</Item>
                   <Item label="Tamanho do calçado">{f.tamanho_calcado ?? '—'}</Item>
-                  <Item label="Especificações" className="sm:col-span-2 lg:col-span-4">
+                  <Item label="Especificações" className="sm:col-span-2 lg:col-span-3">
                     {f.especificacoes.length ? (
                       <ul className="m-0 mt-1 flex list-none flex-wrap gap-2 p-0">
                         {f.especificacoes.map((e) => (
@@ -198,20 +200,20 @@ export default function AtendimentoPage() {
                   <Item label="Tema">{f.tema ?? '—'}</Item>
                   <Item label="Cores">{[f.cor_forro && `forro ${f.cor_forro}`, f.cor_tira && `tira ${f.cor_tira}`].filter(Boolean).join(' · ') || '—'}</Item>
                   {f.medidas_ml && (
-                    <Item label="Anotações das medidas" className="sm:col-span-2 lg:col-span-4">
+                    <Item label="Medidas" className="sm:col-span-2 lg:col-span-3">
                       <span className="whitespace-pre-wrap">{f.medidas_ml}</span>
                     </Item>
                   )}
                 </>
               )}
               {f.observacoes && (
-                <Item label="Observações da ficha" className="sm:col-span-2 lg:col-span-4">
+                <Item label="Observações da ficha" className="sm:col-span-2 lg:col-span-3">
                   <span className="whitespace-pre-wrap">{f.observacoes}</span>
                 </Item>
               )}
             </dl>
+            </div>
           )}
-          {f && <MedidasLeitura tipo={f.tipo} produto={f.produto} lateralidade={f.lateralidade} medidas={f.medidas} />}
         </Card>
 
         {a.observacoes && (
