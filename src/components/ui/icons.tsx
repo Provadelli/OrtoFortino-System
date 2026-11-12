@@ -133,6 +133,20 @@ export const ChevronDownIcon = (p: P) => (
     <path d="m6 9 6 6 6-6" />
   </Icon>
 )
+/** Porta com seta saindo. */
+export const LogoutIcon = (p: P) => (
+  <Icon size={20} strokeWidth={2} {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="m16 17 5-5-5-5M21 12H9" />
+  </Icon>
+)
+/** Balão de conversa (suporte). */
+export const SupportIcon = (p: P) => (
+  <Icon size={20} {...p}>
+    <path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.4A8.5 8.5 0 1 1 21 11.5Z" />
+    <path d="M9 10.5h.01M12.5 10.5h.01M16 10.5h.01" strokeWidth={2.4} />
+  </Icon>
+)
 export const ShieldIcon = (p: P) => (
   <Icon {...p}>
     <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Z" />

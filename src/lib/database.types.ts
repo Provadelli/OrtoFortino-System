@@ -75,14 +75,14 @@ isOneToOne: false
                   Relationships: []
                 },"fichas_tecnicas": {
                   Row: {
-                    "atendimento_id": string,"compensacao_lado": string | null,"compensacao_medida": string | null,"cor_forro": string | null,"cor_tira": string | null,"created_at": string,"created_by": string | null,"especificacoes": (string)[],"id": string,"lateralidade": Database["public"]['Enums']["lateralidade"] | null,"liner": string | null,"medidas_ml": string | null,"nome_na_ortese": boolean,"observacoes": string | null,"produto": string | null,"protese_lado": string | null,"protese_membro": string | null,"protese_nivel": string | null,"tamanho_calcado": string | null,"tamanho_pe": string | null,"tema": string | null,"tipo": Database["public"]['Enums']["tipo_ficha"],"updated_at": string,"updated_by": string | null
+                    "atendimento_id": string,"compensacao_lado": string | null,"compensacao_medida": string | null,"cor_forro": string | null,"cor_tira": string | null,"created_at": string,"created_by": string | null,"especificacoes": (string)[],"id": string,"lateralidade": Database["public"]['Enums']["lateralidade"] | null,"liner": string | null,"medidas": Json,"medidas_ml": string | null,"nome_na_ortese": boolean,"observacoes": string | null,"produto": string | null,"protese_lado": string | null,"protese_membro": string | null,"protese_nivel": string | null,"tamanho_calcado": string | null,"tamanho_pe": string | null,"tema": string | null,"tipo": Database["public"]['Enums']["tipo_ficha"],"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "atendimento_id": string,"compensacao_lado"?: string | null,"compensacao_medida"?: string | null,"cor_forro"?: string | null,"cor_tira"?: string | null,"created_at"?: string,"created_by"?: string | null,"especificacoes"?: (string)[],"id"?: string,"lateralidade"?: Database["public"]['Enums']["lateralidade"] | null,"liner"?: string | null,"medidas_ml"?: string | null,"nome_na_ortese"?: boolean,"observacoes"?: string | null,"produto"?: string | null,"protese_lado"?: string | null,"protese_membro"?: string | null,"protese_nivel"?: string | null,"tamanho_calcado"?: string | null,"tamanho_pe"?: string | null,"tema"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_ficha"],"updated_at"?: string,"updated_by"?: string | null
+                    "atendimento_id": string,"compensacao_lado"?: string | null,"compensacao_medida"?: string | null,"cor_forro"?: string | null,"cor_tira"?: string | null,"created_at"?: string,"created_by"?: string | null,"especificacoes"?: (string)[],"id"?: string,"lateralidade"?: Database["public"]['Enums']["lateralidade"] | null,"liner"?: string | null,"medidas"?: Json,"medidas_ml"?: string | null,"nome_na_ortese"?: boolean,"observacoes"?: string | null,"produto"?: string | null,"protese_lado"?: string | null,"protese_membro"?: string | null,"protese_nivel"?: string | null,"tamanho_calcado"?: string | null,"tamanho_pe"?: string | null,"tema"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_ficha"],"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "atendimento_id"?: string,"compensacao_lado"?: string | null,"compensacao_medida"?: string | null,"cor_forro"?: string | null,"cor_tira"?: string | null,"created_at"?: string,"created_by"?: string | null,"especificacoes"?: (string)[],"id"?: string,"lateralidade"?: Database["public"]['Enums']["lateralidade"] | null,"liner"?: string | null,"medidas_ml"?: string | null,"nome_na_ortese"?: boolean,"observacoes"?: string | null,"produto"?: string | null,"protese_lado"?: string | null,"protese_membro"?: string | null,"protese_nivel"?: string | null,"tamanho_calcado"?: string | null,"tamanho_pe"?: string | null,"tema"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_ficha"],"updated_at"?: string,"updated_by"?: string | null
+                    "atendimento_id"?: string,"compensacao_lado"?: string | null,"compensacao_medida"?: string | null,"cor_forro"?: string | null,"cor_tira"?: string | null,"created_at"?: string,"created_by"?: string | null,"especificacoes"?: (string)[],"id"?: string,"lateralidade"?: Database["public"]['Enums']["lateralidade"] | null,"liner"?: string | null,"medidas"?: Json,"medidas_ml"?: string | null,"nome_na_ortese"?: boolean,"observacoes"?: string | null,"produto"?: string | null,"protese_lado"?: string | null,"protese_membro"?: string | null,"protese_nivel"?: string | null,"tamanho_calcado"?: string | null,"tamanho_pe"?: string | null,"tema"?: string | null,"tipo"?: Database["public"]['Enums']["tipo_ficha"],"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -265,6 +265,11 @@ isOneToOne: false
                            },
 "nova_versao_orcamento":
 { Args: { "p_hoje": string,"p_id": string }; Returns: string
+                           },
+"painel_recebimentos":
+{ Args: { "p_de": string,"p_ate": string }; Returns: {
+              "dia": string,"total": number
+            }[]
                            },
 "painel_resumo":
 { Args: { "p_hoje": string }; Returns: Json

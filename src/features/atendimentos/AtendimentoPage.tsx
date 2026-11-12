@@ -1,14 +1,16 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { ArrowLeftIcon, CheckCircleIcon } from '@/components/ui/icons'
+import { ArrowLeftIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
+import { Etapas } from '@/components/ui/Etapas'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { ageFrom, formatAge, formatIsoDate, todayIso } from '@/lib/br'
 import { cn } from '@/lib/cn'
 import { formatBRL } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useOrcamentoDoAtendimento } from '@/features/orcamentos/api'
+import { MedidasLeitura } from './ficha/MedidasLeitura'
 import { fichaDe, useAtendimento, useExcluirAtendimento, useMudarStatus } from './api'
 import { CATEGORIAS, descreverPagamento, label, LATERALIDADES, PAGAMENTO, prazoAlerta, PROXIMO, STATUS, statusInfo, TIPOS, type StatusAtendimento } from './constants'
 
@@ -99,29 +101,20 @@ export default function AtendimentoPage() {
         </output>
       )}
 
-      {a.status !== 'cancelado' && (
-        <section aria-labelledby="t-etapas" className="rounded-card border border-line bg-white p-5 sm:p-6 animate-rise">
-          <h2 id="t-etapas" className="sr-only">
-            Etapas do atendimento
-          </h2>
-          <ol className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
-            {FLUXO.map((s, i) => {
-              const feito = i <= idxAtual
-              return (
-                <li
-                  key={s.value}
-                  aria-current={i === idxAtual ? 'step' : undefined}
-                  className={cn('flex items-center gap-2 rounded-field px-3 py-2.5 text-sm font-semibold', feito ? 'bg-prod-bg text-prod-fg' : 'bg-surface text-muted')}
-                >
-                  {feito ? <CheckCircleIcon width={18} height={18} className="shrink-0" /> : <span aria-hidden="true" className="size-[18px] shrink-0 rounded-full border-2 border-current" />}
-                  {s.label}
-                  <span className="sr-only">{i < idxAtual ? ' (concluída)' : i === idxAtual ? ' (etapa atual)' : ' (pendente)'}</span>
-                </li>
-              )
-            })}
-          </ol>
-        </section>
-      )}
+      <section className="rounded-card border border-line bg-white px-3 py-5 sm:p-6 animate-rise">
+        <Etapas
+          titulo="Etapas do atendimento"
+          atual={a.status === 'cancelado' ? -1 : idxAtual}
+          cancelado={a.status === 'cancelado'}
+          etapas={[
+            { label: 'Em contato', detalhe: formatIsoDate(a.data_primeiro_contato) },
+            { label: 'Em produção', detalhe: a.data_fechamento ? formatIsoDate(a.data_fechamento) : null },
+            { label: 'Pronto', detalhe: a.prazo_entrega && !a.data_conclusao ? `prazo ${formatIsoDate(a.prazo_entrega)}` : null },
+            { label: 'Entregue', detalhe: a.data_conclusao ? formatIsoDate(a.data_conclusao) : null },
+          ]}
+        />
+        {a.status === 'cancelado' && <p className="m-0 mt-4 text-center text-sm font-semibold text-late-fg">Atendimento cancelado</p>}
+      </section>
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Card title="Paciente e datas" id="c-datas">
@@ -204,9 +197,11 @@ export default function AtendimentoPage() {
                   <Item label="Nome na órtese">{f.nome_na_ortese ? 'Sim' : 'Não'}</Item>
                   <Item label="Tema">{f.tema ?? '—'}</Item>
                   <Item label="Cores">{[f.cor_forro && `forro ${f.cor_forro}`, f.cor_tira && `tira ${f.cor_tira}`].filter(Boolean).join(' · ') || '—'}</Item>
-                  <Item label="Medidas ML" className="sm:col-span-2 lg:col-span-4">
-                    <span className="whitespace-pre-wrap">{f.medidas_ml ?? '—'}</span>
-                  </Item>
+                  {f.medidas_ml && (
+                    <Item label="Anotações das medidas" className="sm:col-span-2 lg:col-span-4">
+                      <span className="whitespace-pre-wrap">{f.medidas_ml}</span>
+                    </Item>
+                  )}
                 </>
               )}
               {f.observacoes && (
@@ -216,6 +211,7 @@ export default function AtendimentoPage() {
               )}
             </dl>
           )}
+          {f && <MedidasLeitura tipo={f.tipo} produto={f.produto} lateralidade={f.lateralidade} medidas={f.medidas} />}
         </Card>
 
         {a.observacoes && (

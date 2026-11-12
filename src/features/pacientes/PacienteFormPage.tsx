@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
+import { MapaSecoes } from '@/components/ui/MapaSecoes'
 import { Choice, ChoiceGroup, FieldError, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon, CloseIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
@@ -135,7 +136,10 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
   }
   const rascunho = useRascunho(form, `paciente:${id ?? 'novo'}`, initial, base)
   const { fields, append, remove } = useFieldArray({ control, name: 'responsaveis', keyName: 'key' })
-  const [origem, nascimento, responsaveis] = useWatch({ control, name: ['origem', 'data_nascimento', 'responsaveis'] })
+  const [origem, nascimento, responsaveis, nome, cidade, origemNome, consentimento] = useWatch({
+    control,
+    name: ['origem', 'data_nascimento', 'responsaveis', 'nome', 'cidade', 'origem_nome', 'consentimento'],
+  })
   const idade = useMemo(() => ageFrom(nascimento), [nascimento])
   const menor = idade !== null && idade < 18
 
@@ -198,6 +202,24 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
           {serverError ?? (errorCount === 1 ? 'Há 1 campo para corrigir.' : `Há ${errorCount} campos para corrigir.`)}
         </div>
       )}
+
+      <MapaSecoes
+        itens={[
+          {
+            id: 'sec-dados',
+            titulo: 'Dados',
+            estado: errors.nome || errors.cpf || errors.data_nascimento || errors.telefone ? 'erro' : nome?.trim() ? 'ok' : 'pendente',
+          },
+          { id: 'sec-endereco', titulo: 'Endereço', estado: errors.cep || errors.endereco || errors.cidade ? 'erro' : cidade?.trim() ? 'ok' : 'pendente' },
+          {
+            id: 'sec-origem',
+            titulo: 'Origem',
+            estado: errors.origem_nome || errors.medico || errors.diagnostico || errors.observacoes ? 'erro' : origem === 'particular' || origemNome?.trim() ? 'ok' : 'pendente',
+          },
+          { id: 'sec-resp', titulo: 'Responsáveis', estado: errors.responsaveis ? 'erro' : !menor || responsaveis.length ? 'ok' : 'pendente' },
+          { id: 'sec-lgpd', titulo: 'Consentimento', estado: errors.consentimento ? 'erro' : editing || consentimento ? 'ok' : 'pendente' },
+        ]}
+      />
 
       <Section id="sec-dados" title="Dados do paciente">
         <div className="grid gap-5 sm:grid-cols-2">

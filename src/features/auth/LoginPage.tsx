@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/Button'
 import { Field, PasswordField } from '@/components/ui/Field'
+import { cn } from '@/lib/cn'
+import { linkSuporte } from '@/lib/suporte'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { AuthError, login, loginMfa, refresh } from './auth-client'
 import { AuthLayout, FormAlert } from './AuthLayout'
@@ -82,8 +84,8 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <form noValidate onSubmit={onSubmit} className="flex w-full max-w-[400px] flex-col gap-[22px] animate-rise" aria-labelledby="titulo-login">
-        <div className="flex flex-col gap-2">
+      <form noValidate onSubmit={onSubmit} className="flex w-full max-w-[400px] flex-col gap-[22px]" aria-labelledby="titulo-login">
+        <div className="flex flex-col gap-2 animate-rise">
           <h1 id="titulo-login" className="m-0 text-[34px] leading-[1.15] font-bold">
             Entrar
           </h1>
@@ -94,21 +96,25 @@ export default function LoginPage() {
         {senhaAlterada && !serverError && <FormAlert tone="success">Senha alterada. Entre com a nova senha.</FormAlert>}
         {serverError && <FormAlert>{serverError}</FormAlert>}
 
-        <Field
-          label="E-mail"
-          type="email"
-          inputMode="email"
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="voce@ortofortino.com.br"
-          error={errors.email?.message}
-          {...register('email')}
-        />
+        <div {...entrada(1)}>
+          <Field
+            label="E-mail"
+            type="email"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="voce@ortofortino.com.br"
+            error={errors.email?.message}
+            {...register('email')}
+          />
+        </div>
 
-        <PasswordField label="Senha" autoComplete="current-password" placeholder="Sua senha" error={errors.password?.message} {...register('password')} />
+        <div {...entrada(2)}>
+          <PasswordField label="Senha" autoComplete="current-password" placeholder="Sua senha" error={errors.password?.message} {...register('password')} />
+        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div {...entrada(3, 'flex flex-wrap items-center justify-between gap-3')}>
           <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] text-ink">
             <input type="checkbox" className="m-0 size-5 cursor-pointer accent-primary" {...register('remember')} />
             Lembrar de mim
@@ -121,13 +127,27 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <Button type="submit" size="lg" loading={isSubmitting}>
+        <Button type="submit" size="lg" loading={isSubmitting} {...entrada(4)}>
           {isSubmitting ? 'Entrando…' : 'Entrar'}
         </Button>
+
+        <p {...entrada(5, 'm-0 text-center text-sm text-muted')}>
+          Problemas para entrar?{' '}
+          <a href={linkSuporte('/login')} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-ink underline underline-offset-4">
+            Acionar suporte
+            <span className="sr-only"> (abre o WhatsApp em nova aba)</span>
+          </a>
+        </p>
       </form>
     </AuthLayout>
   )
 }
+
+/** Entrada escalonada dos blocos do formulário (70 ms entre cada um; nada com "reduzir movimento"). */
+const entrada = (i: number, className?: string) => ({
+  className: cn('animate-rise stagger', className),
+  style: { '--i': i } as CSSProperties,
+})
 
 function EtapaCodigo({ onEntrou, onVoltar }: { onEntrou: () => void; onVoltar: (msg: string | null) => void }) {
   usePageTitle('Código de verificação')
@@ -138,7 +158,10 @@ function EtapaCodigo({ onEntrou, onVoltar }: { onEntrou: () => void; onVoltar: (
     setFocus,
     resetField,
     formState: { errors, isSubmitting },
-  } = useForm<MfaCodeInput>({ resolver: zodResolver(mfaCodeSchema), defaultValues: { code: '' } })
+  } = useForm<MfaCodeInput>({
+    resolver: zodResolver(mfaCodeSchema),
+    defaultValues: { code: '' },
+  })
 
   useEffect(() => setFocus('code'), [setFocus])
 

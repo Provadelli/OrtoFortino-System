@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { db } from '@/lib/supabase'
 import { formatMoneyInput, normalizeSearch, todayIso } from '@/lib/br'
 import { ATIVOS, STATUS, type StatusAtendimento, type StatusPagamento } from './constants'
+import { medidasDoBanco } from './ficha/diagramas'
 import { fichaVazia, toPayload, type AtendimentoForm } from './schema'
 
 export const PAGE_SIZE = 25
@@ -142,6 +143,7 @@ export function toForm(a: Atendimento): AtendimentoForm {
           liner: s(f.liner),
           tamanho_pe: s(f.tamanho_pe),
           observacoes: s(f.observacoes),
+          medidas: medidasDoBanco(f.medidas),
         }
       : fichaVazia,
   }

@@ -64,4 +64,11 @@ export async function mockPainel(page: Page, opts: { body?: unknown; status?: nu
     const { p_hoje } = r.request().postDataJSON() as { p_hoje: string }
     return r.fulfill({ json: opts.body ?? painelExemplo(p_hoje) })
   })
+  // Recebimentos: um pagamento hoje (R$ 500) e um 10 dias antes (R$ 250).
+  await page.route('**/rest/v1/rpc/painel_recebimentos', (r) => {
+    const { p_ate } = r.request().postDataJSON() as { p_ate: string }
+    const d = new Date(p_ate + 'T12:00:00Z')
+    d.setUTCDate(d.getUTCDate() - 10)
+    return r.fulfill({ json: [{ dia: d.toISOString().slice(0, 10), total: '250' }, { dia: p_ate, total: '500' }] })
+  })
 }

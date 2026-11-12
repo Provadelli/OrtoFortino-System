@@ -14,6 +14,8 @@ import {
   SelectField,
   TextareaField,
 } from "@/components/ui/FormControls";
+import { Etapas } from "@/components/ui/Etapas";
+import { MapaSecoes } from "@/components/ui/MapaSecoes";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { StatusChip } from "@/components/ui/StatusChip";
@@ -40,6 +42,7 @@ import {
   type FormaPagamento,
   type StatusPagamento,
 } from "./constants";
+import { MedidasFicha } from "./ficha/MedidasFicha";
 import { PacientePicker } from "./PacientePicker";
 import {
   atendimentoSchema,
@@ -83,6 +86,7 @@ export default function AtendimentoFormPage() {
 }
 
 const PRAZOS = [15, 20, 30, 45];
+const FLUXO = STATUS.filter((s) => s.value !== "cancelado");
 
 const GRUPOS_FORMA = [
   { grupo: "vista", titulo: "À vista" },
@@ -202,6 +206,11 @@ function Inner({
     dataPagamento,
     forma,
     parcelas,
+    produtoFicha,
+    lateralidadeFicha,
+    medidasFicha,
+    pacienteId,
+    observacoes,
   ] = useWatch({
     control,
     name: [
@@ -218,6 +227,11 @@ function Inner({
       "data_pagamento",
       "pagamento_forma",
       "pagamento_parcelas",
+      "ficha.produto",
+      "ficha.lateralidade",
+      "ficha.medidas",
+      "paciente_id",
+      "observacoes",
     ],
   });
   const parcelavel = PARCELAVEIS.includes(forma as FormaPagamento);
@@ -322,6 +336,37 @@ function Inner({
         </div>
       )}
 
+      <MapaSecoes
+        itens={[
+          {
+            id: "sec-atend",
+            titulo: "Atendimento",
+            estado: errors.paciente_id || errors.categoria || errors.descricao || errors.status ? "erro" : pacienteId && status ? "ok" : "pendente",
+          },
+          {
+            id: "sec-datas",
+            titulo: "Datas",
+            estado:
+              errors.data_primeiro_contato || errors.prazo_entrega || errors.data_fechamento || errors.data_conclusao
+                ? "erro"
+                : primeiroContato && prazo
+                  ? "ok"
+                  : "pendente",
+          },
+          {
+            id: "sec-ficha",
+            titulo: "Ficha técnica",
+            estado: errors.ficha ? "erro" : !comFicha || produtoFicha || tipo === "protese" ? "ok" : "pendente",
+          },
+          {
+            id: "sec-pag",
+            titulo: "Pagamento",
+            estado: errors.valor || errors.valor_pago || errors.pagamento_detalhe || errors.data_pagamento ? "erro" : valor || categoria === "reparo" ? "ok" : "pendente",
+          },
+          { id: "sec-obs", titulo: "Observações", estado: errors.observacoes ? "erro" : observacoes ? "ok" : "pendente" },
+        ]}
+      />
+
       <Section id="sec-atend" title="Atendimento">
         <Controller
           control={control}
@@ -369,6 +414,12 @@ function Inner({
             {...register("descricao")}
           />
         </div>
+        <Etapas
+          className="max-w-[560px] rounded-field bg-surface/70 px-2 py-4"
+          atual={status === "cancelado" ? -1 : FLUXO.findIndex((s) => s.value === status)}
+          cancelado={status === "cancelado"}
+          etapas={FLUXO.map((s) => ({ label: s.label }))}
+        />
         <ChoiceGroup
           legend="Status *"
           hint={
@@ -582,9 +633,9 @@ function Inner({
                 </div>
 
                 <TextareaField
-                  label="Medidas ML"
+                  label="Anotações das medidas"
                   rows={2}
-                  hint="Ex.: tornozelo 22 cm, panturrilha 28 cm, pé 18 cm."
+                  hint="O que não couber no desenho abaixo."
                   error={errors.ficha?.medidas_ml?.message}
                   {...register("ficha.medidas_ml")}
                 />
@@ -682,6 +733,13 @@ function Inner({
                 </div>
               </>
             )}
+            <MedidasFicha
+              tipo={tipo}
+              produto={produtoFicha ?? ""}
+              lateralidade={lateralidadeFicha ?? ""}
+              medidas={medidasFicha}
+              register={register}
+            />
             <TextareaField
               label="Observações da ficha"
               error={errors.ficha?.observacoes?.message}

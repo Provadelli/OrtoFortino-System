@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn'
 import { formatBRL, formatLongDate, greeting, initials, shortName } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { STATUS_ORCAMENTO, vencido } from '@/features/orcamentos/constants'
+import { Recebimentos } from './Recebimentos'
 import { usePainel, type Painel } from './api'
 
 const delay = (i: number) => ({ '--i': i }) as CSSProperties
@@ -261,6 +262,8 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
           </Card>
         </div>
       </div>
+
+      <Recebimentos style={delay(7)} />
 
       <Card aria-labelledby="titulo-orcamentos" className="gap-3" style={delay(7)}>
         <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" action={{ to: '/orcamentos?filtro=todos', label: 'Ver todos', srLabel: 'os orçamentos' }} />

@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { DIAGRAMAS, diagramaPara, medidasParaSalvar } from './ficha/diagramas'
 import { parseBRL } from '@/lib/br'
 
 const texto = (max: number) => z.string().check(z.trim(), z.maxLength(max, `Use no máximo ${max} caracteres.`))
@@ -29,6 +30,8 @@ export const fichaSchema = z.object({
   liner: texto(80),
   tamanho_pe: texto(20),
   observacoes: texto(4000),
+  /** Medidas do boneco: { pernas: { d_sup: "24,5" } } (em cm). */
+  medidas: z.record(z.string(), z.record(z.string(), z.string())),
 })
 
 export const atendimentoSchema = z
@@ -88,6 +91,7 @@ export const fichaVazia: FichaForm = {
   liner: '',
   tamanho_pe: '',
   observacoes: '',
+  medidas: {},
 }
 
 export const atendimentoVazio = (pacienteId: string, hoje: string): AtendimentoForm => ({
@@ -111,6 +115,12 @@ export const atendimentoVazio = (pacienteId: string, hoje: string): AtendimentoF
 })
 
 /** Limpa campos que não se aplicam ao tipo de ficha escolhido. */
+/** Só as medidas do boneco em uso (pelo produto/tipo e lateralidade), no formato plano do banco. */
+function medidasDaFicha(f: FichaForm) {
+  const d = DIAGRAMAS[diagramaPara(f.tipo, f.produto)]
+  return medidasParaSalvar(f.medidas, d, f.tipo === 'protese' ? '' : f.lateralidade)
+}
+
 function limparFicha(f: FichaForm): FichaForm {
   const base = { ...f }
   if (f.tipo === 'protese') {
@@ -135,6 +145,6 @@ export function toPayload(v: AtendimentoForm) {
       // Parcelas só valem para crédito e boleto.
       pagamento_parcelas: (dados.pagamento_forma === 'credito' || dados.pagamento_forma === 'boleto') && dados.pagamento_parcelas ? dados.pagamento_parcelas : '',
     },
-    ficha: com_ficha ? limparFicha(ficha) : null,
+    ficha: com_ficha ? { ...limparFicha(ficha), medidas: medidasDaFicha(ficha) } : null,
   }
 }
