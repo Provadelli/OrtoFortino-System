@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { somarDias, todayIso } from '@/lib/br'
 import { db } from '@/lib/supabase'
 
@@ -56,14 +57,28 @@ export function pontosDaColuna(valor: number, maior: number, max = 12) {
   return Math.max(1, Math.round((valor / maior) * max))
 }
 
-export function useRecebimentos(aba: Aba, hoje = todayIso()) {
-  return useQuery({
+const consulta = (aba: Aba, hoje: string) =>
+  queryOptions({
     queryKey: ['atendimentos', 'painel', 'recebimentos', aba, hoje],
     queryFn: async () => {
       const { de, ate } = intervalo(aba, hoje)
       const { data, error } = await db().rpc('painel_recebimentos', { p_de: de, p_ate: ate })
       if (error) throw error
-      return montarSerie(data ?? [], aba, hoje)
+      return { ...montarSerie(data ?? [], aba, hoje), aba }
     },
   })
+
+/**
+ * Mantém o gráfico anterior na tela enquanto o novo período carrega (sem "piscar")
+ * e já busca os outros períodos em segundo plano, para a troca ser imediata.
+ */
+export function useRecebimentos(aba: Aba, hoje = todayIso()) {
+  const qc = useQueryClient()
+  const q = useQuery({ ...consulta(aba, hoje), placeholderData: keepPreviousData })
+  const pronto = q.isSuccess
+  useEffect(() => {
+    if (!pronto) return
+    for (const a of ABAS) if (a.id !== aba) void qc.prefetchQuery(consulta(a.id, hoje))
+  }, [pronto, aba, hoje, qc])
+  return q
 }

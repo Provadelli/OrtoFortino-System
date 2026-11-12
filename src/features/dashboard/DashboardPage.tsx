@@ -170,7 +170,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             key={k.label}
             style={delay(i)}
             data-secao={k.cor}
-            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgb(31_42_46/0.35)]"
+            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgb(31_42_46/0.35)]"
           >
             <Rabisco
               forma={k.forma}
@@ -187,8 +187,11 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
         ))}
       </section>
 
-      <div className="flex flex-wrap items-start gap-4">
-        <Card aria-labelledby="titulo-prazos" className="flex-[2_1_480px] gap-2" style={delay(4)}>
+      {/* Duas colunas de mesma altura (desktop): o último card de cada uma estica para não sobrar espaço. */}
+      <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+        {/* esquerda: prazos e, logo abaixo, o gráfico de recebidos */}
+        <div className="flex min-w-0 flex-col gap-4">
+        <Card aria-labelledby="titulo-prazos" className="gap-2" style={delay(4)}>
           <CardHeader id="titulo-prazos" title="Próximos prazos de entrega" action={{ to: '/atendimentos', label: 'Ver todos', srLabel: 'os atendimentos em andamento' }} />
           {p.prazos.length === 0 ? (
             <p className="m-0 border-t border-line-soft pt-4 text-muted">Nenhum atendimento em andamento com prazo definido.</p>
@@ -225,7 +228,10 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
           )}
         </Card>
 
-        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
+          <Recebimentos style={delay(6)} className="lg:flex-1" />
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
           <Card aria-labelledby="titulo-status" className="gap-4" style={delay(5)}>
             <CardHeader id="titulo-status" title="Atendimentos por status" />
             <ul className="m-0 flex list-none flex-col gap-4 p-0">
@@ -246,7 +252,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             </ul>
           </Card>
 
-          <Card aria-labelledby="titulo-receber" className="gap-1" style={delay(6)}>
+          <Card aria-labelledby="titulo-receber" className="gap-1 lg:flex-1" style={delay(6)}>
             <div className="mb-2">
               <CardHeader id="titulo-receber" title="A receber" action={{ to: '/atendimentos?filtro=pagamento', label: 'Ver todos', srLabel: 'os pagamentos a receber' }} />
             </div>
@@ -278,8 +284,6 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
           </Card>
         </div>
       </div>
-
-      <Recebimentos style={delay(7)} />
 
       <Card aria-labelledby="titulo-orcamentos" className="gap-3" style={delay(7)}>
         <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" action={{ to: '/orcamentos?filtro=todos', label: 'Ver todos', srLabel: 'os orçamentos' }} />

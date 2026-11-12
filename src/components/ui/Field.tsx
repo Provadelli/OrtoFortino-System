@@ -18,7 +18,7 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 export const inputClass = (invalid?: boolean, className?: string) =>
   cn(
     'h-[50px] w-full rounded-field border-[1.5px] bg-white px-3.5 text-base text-ink',
-    'transition-[border-color,box-shadow] duration-150',
+    'transition-[border-color,box-shadow] duration-300',
     invalid ? 'border-late-fg' : 'border-field hover:border-field-hover',
     className,
   )

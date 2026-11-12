@@ -16,7 +16,7 @@ export function FieldError({ id, children }: { id: string; children?: string }) 
 }
 
 const controlBase =
-  'w-full rounded-field border-[1.5px] bg-white px-3.5 text-base text-ink transition-[border-color,box-shadow] duration-150'
+  'w-full rounded-field border-[1.5px] bg-white px-3.5 text-base text-ink transition-[border-color,box-shadow] duration-300'
 
 type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string; hint?: ReactNode }
 

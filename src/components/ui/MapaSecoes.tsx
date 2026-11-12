@@ -48,7 +48,7 @@ export function MapaSecoes({ itens }: { itens: ItemSecao[] }) {
                   setAtual(s.id)
                 }}
                 className={cn(
-                  'flex min-h-10 items-center gap-2 rounded-full px-3 text-[13px] font-semibold no-underline transition-[background-color,color] duration-200',
+                  'flex min-h-10 items-center gap-2 rounded-full px-3 text-[13px] font-semibold no-underline transition-[background-color,color] duration-300',
                   corrente ? 'bg-white text-ink shadow-sm' : 'text-ink-soft hover:bg-white/70 hover:text-ink',
                 )}
               >

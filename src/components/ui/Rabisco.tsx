@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 export type FormaRabisco = 'espiral' | 'faixa' | 'sublinhado' | 'laco' | 'estrela'
@@ -13,15 +13,41 @@ export function Rabisco({ forma, cor, className, style }: { forma: FormaRabisco;
   return <span aria-hidden="true" className={cn('rabisco block', className)} style={{ maskImage: url, WebkitMaskImage: url, background: cor, ...style }} />
 }
 
-/** Cena do site da empresa: faixa rosa no alto, espiral amarela, espiral lilás e faixa verde embaixo. */
+/**
+ * Cena do login e da 404, na composição do site da empresa: diagonais opostas
+ * (faixa rosa ↖ e faixa verde ↘; espiral amarela ↗ e espiral lilás ↙) com os raios
+ * de sol girando devagar atrás da marca. Cada peça chega em sequência e depois só
+ * "respira" (espirais girando lento, faixas flutuando). Tudo para com "reduzir movimento".
+ */
 export function CenaRabiscos() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <Rabisco forma="faixa" className="absolute -top-3 -left-10 h-16 w-[min(70%,460px)] -rotate-2 bg-giz-rosa animate-fade stagger [--i:1]" />
-      <Rabisco forma="espiral" className="absolute -top-8 -right-16 size-[clamp(170px,22vw,290px)] bg-giz-amarelo animate-fade stagger [--i:2]" />
-      <Rabisco forma="espiral" className="absolute -bottom-14 -left-20 size-[clamp(160px,20vw,260px)] rotate-45 bg-giz-lilas animate-fade stagger [--i:3]" />
-      <Rabisco forma="faixa" className="absolute right-[-30px] bottom-2 h-14 w-[min(60%,420px)] rotate-1 bg-giz-verde animate-fade stagger [--i:4]" />
-      <Rabisco forma="estrela" className="absolute top-[22%] left-[12%] size-7 rotate-12 bg-giz-laranja animate-fade stagger [--i:5] max-sm:hidden" />
+      {/* raios: só no centro, desaparecendo nas bordas */}
+      <div className="absolute top-1/2 left-1/2 size-[1100px] -translate-x-1/2 -translate-y-1/2 [mask-image:radial-gradient(circle,#000_0,#000_18%,transparent_58%)] animate-fade">
+        <div className="sunburst size-full opacity-70 animate-spin-slow will-change-transform" />
+      </div>
+
+      <Peca className="-top-4 -left-12 h-16 w-[min(62%,420px)] -rotate-3" i={1}>
+        <Rabisco forma="faixa" className="size-full bg-giz-rosa animate-flutua" />
+      </Peca>
+      <Peca className="-top-16 -right-20 size-[clamp(180px,24vw,300px)]" i={2}>
+        <Rabisco forma="espiral" className="size-full bg-giz-amarelo animate-gira will-change-transform" />
+      </Peca>
+      <Peca className="-bottom-20 -left-20 size-[clamp(170px,22vw,280px)] max-sm:-bottom-24 max-sm:size-[150px]" i={3}>
+        <Rabisco forma="espiral" className="size-full bg-giz-lilas animate-gira-inverso will-change-transform" />
+      </Peca>
+      <Peca className="-right-12 bottom-1 h-14 w-[min(62%,420px)] rotate-2 max-sm:-bottom-3 max-sm:h-10 max-sm:w-[48%]" i={4}>
+        <Rabisco forma="faixa" className="size-full bg-giz-verde animate-flutua [animation-delay:-3.5s]" />
+      </Peca>
+    </div>
+  )
+}
+
+/** Posição + entrada (escala e opacidade); o movimento contínuo fica no filho. */
+function Peca({ className, i, children }: { className: string; i: number; children: ReactNode }) {
+  return (
+    <div className={cn('absolute animate-chega stagger', className)} style={{ '--i': i * 2 } as CSSProperties}>
+      {children}
     </div>
   )
 }

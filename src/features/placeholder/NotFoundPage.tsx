@@ -15,7 +15,7 @@ export default function NotFoundPage() {
   const logado = !!session
 
   return (
-    <main id="conteudo" className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#f3f4f2] px-4 py-16 text-center">
+    <main id="conteudo" className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-mint-wash px-4 py-16 text-center">
       <CenaRabiscos />
 
       <div className="relative flex max-w-[460px] flex-col items-center gap-5">

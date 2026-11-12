@@ -7,7 +7,6 @@ import { logout } from '@/features/auth/auth-client'
 import { useSession } from '@/features/auth/useSession'
 import { cn } from '@/lib/cn'
 import { limparRascunhos } from '@/lib/rascunho'
-import { secaoDe } from '@/lib/secoes'
 import { linkSuporte } from '@/lib/suporte'
 
 type Item = { to: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }
@@ -75,36 +74,28 @@ export function Sidebar() {
           {destaque && (
             <li
               aria-hidden="true"
-              data-secao={secaoDe(pathname)}
-              className="pointer-events-none absolute inset-x-0 top-0 rounded-full bg-(--secao-bg) transition-[transform,height,background-color] duration-300 ease-[var(--ease-out-soft)]"
+              className="pointer-events-none absolute inset-x-0 top-0 rounded-field bg-prod-bg transition-[transform,height] duration-300 ease-[var(--ease-out-soft)]"
               style={{ transform: `translateY(${destaque.top}px)`, height: destaque.height }}
             />
           )}
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <li key={to} className="relative" data-secao={secaoDe(to)}>
+            <li key={to} className="relative">
               <NavLink
                 to={to}
                 viewTransition
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'group flex min-h-11 items-center gap-3 rounded-full px-3.5 text-[15px] no-underline transition-colors duration-200',
+                    'group flex min-h-11 items-center gap-3 rounded-field px-3.5 text-[15px] no-underline transition-colors duration-300',
                     isActive
-                      ? cn('font-semibold text-(--secao-fg)', !destaque && 'bg-(--secao-bg)')
+                      ? cn('font-semibold text-prod-fg', !destaque && 'bg-prod-bg')
                       : 'font-medium text-ink-soft hover:bg-surface-hover hover:text-ink',
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <span
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-full text-(--secao-fg) transition-[background-color,transform] duration-200 group-hover:translate-x-0.5',
-                        isActive ? 'bg-white animate-nudge' : 'bg-(--secao-bg)',
-                      )}
-                    >
-                      <Icon className="size-[18px]" />
-                    </span>
+                    <Icon className={cn('shrink-0 transition-transform duration-300 group-hover:translate-x-0.5', isActive && 'animate-nudge')} />
                     {label}
                   </>
                 )}
@@ -162,7 +153,7 @@ function Conta() {
   }
 
   const itemClass =
-    'flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[10px] bg-transparent px-3 text-left text-[15px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-surface-hover'
+    'flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[10px] bg-transparent px-3 text-left text-[15px] font-medium text-ink no-underline transition-colors duration-300 hover:bg-surface-hover'
 
   return (
     <div ref={caixaRef} className="relative mt-auto">
@@ -198,7 +189,7 @@ function Conta() {
               {saindo ? (
                 <span aria-hidden="true" className="size-5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (
-                <LogoutIcon className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
+                <LogoutIcon className="shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />
               )}
               {saindo ? 'Saindo…' : 'Sair'}
             </button>
@@ -212,7 +203,7 @@ function Conta() {
         aria-controls={menuId}
         onClick={() => setAberto((v) => !v)}
         className={cn(
-          'flex w-full cursor-pointer items-center gap-3 rounded-[14px] border p-2.5 text-left transition-[background-color,border-color] duration-200',
+          'flex w-full cursor-pointer items-center gap-3 rounded-[14px] border p-2.5 text-left transition-[background-color,border-color] duration-300',
           aberto ? 'border-line bg-white' : 'border-transparent bg-surface hover:border-line',
         )}
       >
@@ -222,7 +213,7 @@ function Conta() {
           {email && <span className="truncate text-xs text-muted">{email}</span>}
           <span className="sr-only">: abrir menu da conta</span>
         </span>
-        <ChevronUpIcon className={cn('shrink-0 text-muted transition-transform duration-200', !aberto && 'rotate-180')} />
+        <ChevronUpIcon className={cn('shrink-0 text-muted transition-transform duration-300', !aberto && 'rotate-180')} />
       </button>
     </div>
   )

@@ -35,7 +35,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-wrap bg-white">
       <aside
         aria-label="Orto Fortino"
-        className="relative flex min-h-[340px] flex-[1_1_520px] flex-col items-center justify-center overflow-hidden bg-[#f3f4f2] px-8 py-12 sm:min-h-[440px]"
+        className="relative flex min-h-[340px] flex-[1_1_520px] flex-col items-center justify-center overflow-hidden bg-mint-wash px-8 py-12 sm:min-h-[440px]"
       >
         <CenaRabiscos />
         <div className="relative flex flex-col items-start">

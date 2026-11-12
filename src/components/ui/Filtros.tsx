@@ -99,7 +99,7 @@ export function BarraLista({ nome, busca, grupos, ativos, onAlternar, onLimpar, 
               onChange={(e) => busca.setTexto(e.target.value)}
               placeholder={busca.placeholder}
               autoComplete="off"
-              className="h-12 w-full rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-[border-color,box-shadow] duration-200 hover:border-field-hover"
+              className="h-12 w-full rounded-field border-[1.5px] border-field-soft bg-white pr-3.5 pl-[42px] text-[15px] text-ink transition-[border-color,box-shadow] duration-300 hover:border-field-hover"
             />
           </form>
         </search>
@@ -109,7 +109,7 @@ export function BarraLista({ nome, busca, grupos, ativos, onAlternar, onLimpar, 
           aria-controls={`${id}-painel`}
           onClick={() => setAberto((v) => !v)}
           className={cn(
-            'inline-flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-field border-[1.5px] px-4 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.98]',
+            'inline-flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-field border-[1.5px] px-4 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-300 active:scale-[0.98]',
             aberto || ativos.length ? 'border-primary bg-prod-bg text-prod-fg' : 'border-field-soft bg-white text-ink hover:border-field-hover hover:bg-surface-hover',
           )}
         >
@@ -143,11 +143,11 @@ export function BarraLista({ nome, busca, grupos, ativos, onAlternar, onLimpar, 
                       aria-pressed={on}
                       onClick={() => onAlternar(o.valor)}
                       className={cn(
-                        'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-3.5 text-sm font-semibold transition-[background-color,border-color,color,transform,box-shadow] duration-200 active:scale-[0.97]',
+                        'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-3.5 text-sm font-semibold transition-[background-color,border-color,color,transform,box-shadow] duration-300 active:scale-[0.97]',
                         on ? 'border-primary bg-white text-ink shadow-sm' : 'border-field-soft bg-white/70 text-ink-soft hover:border-field-hover hover:text-ink',
                       )}
                     >
-                      <span aria-hidden="true" className={cn('size-2.5 rounded-full transition-transform duration-200', toneDot[o.tom ?? 'draft'], on && 'scale-125')} />
+                      <span aria-hidden="true" className={cn('size-2.5 rounded-full transition-transform duration-300', toneDot[o.tom ?? 'draft'], on && 'scale-125')} />
                       {o.rotulo}
                     </button>
                   )
@@ -172,7 +172,7 @@ export function BarraLista({ nome, busca, grupos, ativos, onAlternar, onLimpar, 
                     type="button"
                     onClick={() => onAlternar(v)}
                     aria-label={`Remover filtro ${o?.rotulo ?? v}`}
-                    className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-white py-1 pr-2 pl-3 text-sm font-semibold text-ink transition-colors duration-200 hover:border-late-fg hover:text-late-fg"
+                    className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-white py-1 pr-2 pl-3 text-sm font-semibold text-ink transition-colors duration-300 hover:border-late-fg hover:text-late-fg"
                   >
                     <span aria-hidden="true" className={cn('size-2 rounded-full', toneDot[o?.tom ?? 'draft'])} />
                     {o?.rotulo ?? v}
