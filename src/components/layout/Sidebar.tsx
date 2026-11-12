@@ -74,7 +74,7 @@ export function Sidebar() {
           {destaque && (
             <li
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 rounded-field bg-prod-bg transition-[transform,height] duration-300 ease-[var(--ease-out-soft)]"
+              className="pointer-events-none absolute inset-x-0 top-0 rounded-full bg-prod-bg transition-[transform,height] duration-300 ease-[var(--ease-out-soft)]"
               style={{ transform: `translateY(${destaque.top}px)`, height: destaque.height }}
             />
           )}
@@ -86,7 +86,7 @@ export function Sidebar() {
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'group flex min-h-11 items-center gap-3 rounded-field px-3.5 text-[15px] no-underline transition-colors duration-300',
+                    'group flex min-h-11 items-center gap-3 rounded-full px-4 text-[15px] no-underline transition-colors duration-300 ease-[var(--ease-out-soft)]',
                     isActive
                       ? cn('font-semibold text-prod-fg', !destaque && 'bg-prod-bg')
                       : 'font-medium text-ink-soft hover:bg-surface-hover hover:text-ink',

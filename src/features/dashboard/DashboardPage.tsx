@@ -170,7 +170,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             key={k.label}
             style={delay(i)}
             data-secao={k.cor}
-            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgb(31_42_46/0.35)]"
+            className="relative isolate flex flex-col gap-2.5 overflow-hidden rounded-card bg-(--secao-bg) p-5 animate-rise stagger hover-suave hover:-translate-y-px"
           >
             <Rabisco
               forma={k.forma}
@@ -187,11 +187,9 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
         ))}
       </section>
 
-      {/* Duas colunas de mesma altura (desktop): o último card de cada uma estica para não sobrar espaço. */}
+      {/* Duas colunas de mesma altura no desktop (sem buraco embaixo da menor); uma coluna no celular/tablet. */}
       <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
-        {/* esquerda: prazos e, logo abaixo, o gráfico de recebidos */}
-        <div className="flex min-w-0 flex-col gap-4">
-        <Card aria-labelledby="titulo-prazos" className="gap-2" style={delay(4)}>
+        <Card aria-labelledby="titulo-prazos" className="hover-suave gap-2" style={delay(4)}>
           <CardHeader id="titulo-prazos" title="Próximos prazos de entrega" action={{ to: '/atendimentos', label: 'Ver todos', srLabel: 'os atendimentos em andamento' }} />
           {p.prazos.length === 0 ? (
             <p className="m-0 border-t border-line-soft pt-4 text-muted">Nenhum atendimento em andamento com prazo definido.</p>
@@ -201,7 +199,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
                 const chip = prazoAlerta(a.status, a.prazo_entrega, hoje) ?? statusInfo(a.status)
                 const nome = shortName(a.paciente)
                 return (
-                  <li key={a.id} className="flex flex-wrap items-center gap-3.5 border-t border-line-soft py-3.5">
+                  <li key={a.id} className="linha-suave -mx-2 flex flex-wrap items-center gap-3.5 rounded-field border-t border-line-soft px-2 py-3.5">
                     <div
                       aria-hidden="true"
                       className={cn('flex size-[42px] shrink-0 items-center justify-center rounded-full font-display text-sm font-bold text-ink', avatarBg[chip.tone])}
@@ -226,13 +224,23 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
               })}
             </ul>
           )}
+          {/* Rodapé: ocupa o espaço que sobra com o resumo do que está em andamento */}
+          <div className="relative mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 overflow-hidden rounded-field bg-mint-wash px-4 py-3 pr-24 text-[13px] text-ink-soft">
+            <span>
+              <strong className="font-semibold text-ink tabular-nums">{p.em_producao}</strong> em produção
+            </span>
+            <span>
+              <strong className="font-semibold text-ink tabular-nums">{p.prontos}</strong> {p.prontos === 1 ? 'pronto' : 'prontos'} para entrega
+            </span>
+            <span className={cn(p.atrasados > 0 && 'font-medium text-late-fg')}>
+              <strong className="font-semibold tabular-nums">{p.atrasados}</strong> {p.atrasados === 1 ? 'atrasado' : 'atrasados'}
+            </span>
+            <Rabisco forma="laco" className="absolute top-1/2 -right-4 h-6 w-[110px] -translate-y-1/2 bg-giz-verde opacity-60" />
+          </div>
         </Card>
 
-          <Recebimentos style={delay(6)} className="lg:flex-1" />
-        </div>
-
         <div className="flex min-w-0 flex-col gap-4">
-          <Card aria-labelledby="titulo-status" className="gap-4" style={delay(5)}>
+          <Card aria-labelledby="titulo-status" className="hover-suave gap-4" style={delay(5)}>
             <CardHeader id="titulo-status" title="Atendimentos por status" />
             <ul className="m-0 flex list-none flex-col gap-4 p-0">
               {etapas.map((e, i) => (
@@ -252,7 +260,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             </ul>
           </Card>
 
-          <Card aria-labelledby="titulo-receber" className="gap-1 lg:flex-1" style={delay(6)}>
+          <Card aria-labelledby="titulo-receber" className="hover-suave gap-1 lg:flex-1" style={delay(6)}>
             <div className="mb-2">
               <CardHeader id="titulo-receber" title="A receber" action={{ to: '/atendimentos?filtro=pagamento', label: 'Ver todos', srLabel: 'os pagamentos a receber' }} />
             </div>
@@ -263,7 +271,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
                 {p.receber.map((g) => {
                   const pg = PAGAMENTO[g.pagamento_status]
                   return (
-                    <li key={g.id} className="flex items-center justify-between gap-3 border-t border-line-soft py-2.5">
+                    <li key={g.id} className="linha-suave -mx-2 flex items-center justify-between gap-3 rounded-field border-t border-line-soft px-2 py-2.5">
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <Link to={`/atendimentos/${g.id}`} className="text-[15px] font-semibold text-ink no-underline hover:text-primary-ink hover:underline">
                           {shortName(g.paciente)}
@@ -285,7 +293,9 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
         </div>
       </div>
 
-      <Card aria-labelledby="titulo-orcamentos" className="gap-3" style={delay(7)}>
+      <Recebimentos style={delay(7)} />
+
+      <Card aria-labelledby="titulo-orcamentos" className="hover-suave gap-3" style={delay(7)}>
         <CardHeader id="titulo-orcamentos" title="Orçamentos recentes" action={{ to: '/orcamentos?filtro=todos', label: 'Ver todos', srLabel: 'os orçamentos' }} />
         {p.orcamentos.length === 0 ? (
           <div className="flex flex-wrap items-center gap-3 rounded-field bg-surface p-4 text-sm text-muted">
@@ -300,7 +310,7 @@ function Conteudo({ p, hoje }: { p: Painel; hoje: string }) {
             {p.orcamentos.map((o) => {
               const st = STATUS_ORCAMENTO[o.status]
               return (
-                <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft py-2.5 first:border-t-0">
+                <li key={o.id} className="linha-suave -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-field border-t border-line-soft px-2 py-2.5 first:border-t-0">
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <Link to={`/orcamentos/${o.id}`} className="text-[15px] font-semibold text-ink no-underline tabular-nums hover:text-primary-ink hover:underline">
                       {o.numero}

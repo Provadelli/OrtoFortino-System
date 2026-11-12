@@ -1,5 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { CenaRabiscos } from '@/components/ui/Rabisco'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { CenaRabiscos, RabiscoTracado } from '@/components/ui/Rabisco'
+import { cn } from '@/lib/cn'
+
+// Frases do site da empresa
+const SELOS = [
+  { texto: 'Recursos que auxiliam na reabilitação', cor: 'bg-giz-amarelo' },
+  { texto: 'Autonomia, conforto e inclusão', cor: 'bg-giz-verde' },
+]
 import { Logo } from '@/components/brand/Logo'
 import { LockIcon } from '@/components/ui/icons'
 import { formatPhone } from '@/lib/br'
@@ -39,12 +46,25 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       >
         <CenaRabiscos />
         <div className="relative flex flex-col items-start">
-          <div className="animate-rise stagger [--i:1]">
+          <div className="animate-rise stagger [--i:3]">
             <Logo className="w-[clamp(240px,26vw,340px)]" />
           </div>
-          <p className="mt-10 mb-0 max-w-[380px] text-lg leading-normal text-[#2b4a3f] animate-rise stagger [--i:3]">
-            Fichas, atendimentos e orçamentos da oficina, do primeiro contato à entrega.
+          <RabiscoTracado forma="sublinhado" cor="var(--color-giz-verde)" atraso={900} duracao={550} className="mt-3 ml-1 h-4 w-[clamp(150px,16vw,200px)]" />
+          <p className="mt-7 mb-0 max-w-[380px] text-lg leading-normal text-[#2b4a3f] animate-rise stagger [--i:12]">
+            Especialistas na confecção de órteses funcionais.
           </p>
+          <ul aria-label="O que nos move" className="m-0 mt-5 flex list-none flex-wrap gap-2 p-0">
+            {SELOS.map((s, i) => (
+              <li
+                key={s.texto}
+                className="flex items-center gap-2 rounded-full bg-white/85 px-3.5 py-2 text-sm font-medium text-ink shadow-[0_4px_14px_-8px_rgb(31_42_46/0.25)] animate-rise stagger"
+                style={{ '--i': 17 + i * 2 } as CSSProperties}
+              >
+                <span aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-full', s.cor)} />
+                {s.texto}
+              </li>
+            ))}
+          </ul>
         </div>
       </aside>
 

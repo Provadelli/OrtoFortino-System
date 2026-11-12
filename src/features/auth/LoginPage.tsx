@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Field, PasswordField } from '@/components/ui/Field'
 import { cn } from '@/lib/cn'
 import { linkSuporte } from '@/lib/suporte'
+import { RabiscoTracado } from '@/components/ui/Rabisco'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { AuthError, login, loginMfa, refresh } from './auth-client'
 import { AuthLayout, FormAlert } from './AuthLayout'
@@ -89,6 +90,7 @@ export default function LoginPage() {
           <h1 id="titulo-login" className="m-0 text-[34px] leading-[1.15] font-bold">
             Entrar
           </h1>
+          <RabiscoTracado forma="sublinhado" cor="var(--color-giz-rosa)" atraso={450} duracao={450} className="-mt-1 h-3.5 w-24" />
           <p className="m-0 text-base text-muted">Acesso restrito à equipe Orto Fortino.</p>
         </div>
 
