@@ -39,10 +39,10 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       >
         <CenaRabiscos />
         <div className="relative flex flex-col items-start">
-          <div className="animate-rise stagger [--i:1]">
-            <Logo className="w-[clamp(240px,26vw,340px)]" />
+          <div className="animate-sobe">
+            <Logo prioridade className="w-[clamp(240px,26vw,340px)]" />
           </div>
-          <p className="mt-10 mb-0 max-w-[380px] text-lg leading-normal text-[#2b4a3f] animate-rise stagger [--i:3]">
+          <p className="mt-10 mb-0 max-w-[380px] text-lg leading-normal text-[#2b4a3f] animate-sobe [animation-delay:80ms]">
             Fichas, atendimentos e orçamentos da oficina, do primeiro contato à entrega.
           </p>
         </div>

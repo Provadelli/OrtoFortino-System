@@ -8,10 +8,11 @@ import { apiDevServer } from './scripts/vite-api-dev.ts'
 
 /**
  * Injeta <link rel="preload"> para as fontes da primeira dobra
- * (Inter variável e Poppins 700), evitando FOUT e atraso no LCP.
+ * (Poppins 700, dos títulos). A Inter (48 KB) fica de fora: tem fallback com as mesmas
+ * métricas (fonts.css) e, pré-carregada, disputava banda com o JS da tela no celular.
  */
 function preloadCriticalFonts(): Plugin {
-  const critical = [/inter-latin-wght-normal.*\.woff2$/, /poppins-latin-700-normal.*\.woff2$/]
+  const critical = [/poppins-latin-700-normal.*\.woff2$/]
   return {
     name: 'of:preload-fonts',
     apply: 'build',
@@ -26,6 +27,42 @@ function preloadCriticalFonts(): Plugin {
             attrs: { rel: 'preload', href: `/${file}`, as: 'font', type: 'font/woff2', crossorigin: '' },
             injectTo: 'head' as const,
           }))
+      },
+    },
+  }
+}
+
+/**
+ * Login (a porta de entrada e o que o PageSpeed mede): anuncia no HTML o código da tela de login
+ * e a logo, que de outra forma só seriam descobertos depois de baixar e rodar o JS principal.
+ * Corta duas idas e voltas na rede no celular. (~30 KB, ficam em cache para as próximas visitas.)
+ */
+function preloadLogin(): Plugin {
+  return {
+    name: 'of:preload-login',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        const bundle = ctx.bundle
+        if (!bundle) return
+        const entrada = Object.values(bundle).find((c) => c.type === 'chunk' && c.isEntry)
+        const login = Object.values(bundle).find((c) => c.type === 'chunk' && /features[\\/]auth[\\/]LoginPage\.tsx$/.test(c.facadeModuleId ?? ''))
+        if (!login || login.type !== 'chunk') return
+        const arquivos = new Set<string>()
+        const visitar = (nome: string) => {
+          const c = bundle[nome]
+          if (!c || c.type !== 'chunk' || arquivos.has(nome) || nome === entrada?.fileName) return
+          if (entrada?.type === 'chunk' && entrada.imports.includes(nome)) return // o Vite já anuncia
+          arquivos.add(nome)
+          c.imports.forEach(visitar)
+        }
+        visitar(login.fileName)
+        const logo = Object.keys(bundle).find((f) => /logo-orto-fortino-[\w-]+\.svg$/.test(f) && !f.includes('sem-slogan'))
+        return [
+          ...(logo ? [{ tag: 'link', attrs: { rel: 'preload', href: `/${logo}`, as: 'image', type: 'image/svg+xml', fetchpriority: 'high' }, injectTo: 'head' as const }] : []),
+          ...[...arquivos].map((f) => ({ tag: 'link', attrs: { rel: 'modulepreload', crossorigin: '', href: `/${f}` }, injectTo: 'head' as const })),
+        ]
       },
     },
   }
@@ -60,7 +97,7 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''), readEnvFiles(mode))
 
   return {
-    plugins: [react(), tailwindcss(), preloadCriticalFonts(), apiDevServer()],
+    plugins: [react(), tailwindcss(), preloadCriticalFonts(), preloadLogin(), apiDevServer()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

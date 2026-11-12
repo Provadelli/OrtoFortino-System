@@ -13,7 +13,12 @@ import { AuthLayout, FormAlert } from './AuthLayout'
 import { limparCodigo, loginSchema, mfaCodeSchema, type LoginInput, type MfaCodeInput } from './schemas'
 import { safeNext } from './safe-next'
 
-const preloadDashboard = () => import('@/features/dashboard/DashboardPage')
+let preloadFeito = false
+const preloadUmaVez = () => {
+  if (preloadFeito) return
+  preloadFeito = true
+  void import('@/features/dashboard/DashboardPage')
+}
 
 export default function LoginPage() {
   usePageTitle('Entrar')
@@ -41,12 +46,8 @@ export default function LoginPage() {
     void refresh().then((s) => {
       if (alive && s) navigate(next, { replace: true })
     })
-    // Pré-carrega o painel quando o navegador estiver ocioso.
-    const idle = window.requestIdleCallback?.(() => void preloadDashboard()) ?? window.setTimeout(() => void preloadDashboard(), 1500)
     return () => {
       alive = false
-      if (window.cancelIdleCallback) window.cancelIdleCallback(idle)
-      else window.clearTimeout(idle)
     }
   }, [navigate, next])
 
@@ -85,7 +86,15 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <form noValidate onSubmit={onSubmit} className="flex w-full max-w-[400px] flex-col gap-[22px]" aria-labelledby="titulo-login">
+      {/* Pré-carrega o painel quando a pessoa começa a preencher (não pesa no carregamento inicial). */}
+      <form
+        noValidate
+        onSubmit={onSubmit}
+        onFocusCapture={preloadUmaVez}
+        onPointerDownCapture={preloadUmaVez}
+        className="flex w-full max-w-[400px] flex-col gap-[22px]"
+        aria-labelledby="titulo-login"
+      >
         <div className="flex flex-col gap-2 animate-rise">
           <h1 id="titulo-login" className="m-0 text-[34px] leading-[1.15] font-bold">
             Entrar

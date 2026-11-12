@@ -72,6 +72,8 @@
   --default-transition-timing-function: var(--ease-out-soft);
 
   --animate-rise: rise 520ms var(--ease-out-soft) backwards;
+  /* Só desliza (sem partir de opacidade 0): para o que precisa aparecer já na primeira pintura, como a logo */
+  --animate-sobe: sobe 520ms var(--ease-out-soft) backwards;
   --animate-fade: fade 400ms ease-out backwards;
   --animate-grow-x: grow-x 900ms var(--ease-out-soft) backwards;
   --animate-spin-slow: spin 160s linear infinite;
@@ -97,6 +99,10 @@
     to { opacity: 1; transform: none; }
   }
 
+  @keyframes sobe {
+    from { transform: translateY(10px); }
+    to { transform: none; }
+  }
   @keyframes rise {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
