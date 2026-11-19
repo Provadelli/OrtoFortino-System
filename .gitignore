@@ -40,3 +40,15 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 *.sw?
+
+# Mídia e documentos soltos (só docs/ é versionado; vídeo-fonte e vozes ficam fora)
+/video-apresentacao/
+/*.pdf
+/*.avif
+/*.mp4
+.tts/
+
+# Dumps e backups de banco
+*.dump
+*.sql.bak
+*.bak

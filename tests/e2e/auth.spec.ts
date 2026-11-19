@@ -65,7 +65,7 @@ test('sair volta para o login', async ({ page, isMobile }) => {
   await expect(conta.locator('img[src="/favicon.svg"]')).toBeVisible()
   await conta.click()
   await expect(conta).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByRole('link', { name: /Acionar suporte/ })).toHaveAttribute('href', /^https:\/\/wa\.me\/5500000000000\?text=/)
+  await expect(page.getByRole('link', { name: /Acionar suporte/ })).toHaveAttribute('href', /^https:\/\/wa\.me\/\d+\?text=/)
   await page.keyboard.press('Escape')
   await expect(conta).toHaveAttribute('aria-expanded', 'false')
   await expect(conta).toBeFocused()
@@ -80,7 +80,7 @@ test('login: entrada animada termina visível e oferece suporte', async ({ page 
   const entrar = page.getByRole('button', { name: 'Entrar' })
   await expect(entrar).toBeVisible()
   await expect.poll(() => entrar.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
-  await expect(page.getByRole('link', { name: /Acionar suporte/ })).toHaveAttribute('href', /wa\.me\/5500000000000/)
+  await expect(page.getByRole('link', { name: /Acionar suporte/ })).toHaveAttribute('href', /wa\.me\/\d+/)
 })
 
 test('404 com a marca, voltar e suporte', async ({ page }) => {

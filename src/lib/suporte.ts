@@ -1,6 +1,5 @@
-/** WhatsApp do suporte técnico do sistema (DDI 55 + DDD 21). */
-export const WHATSAPP_SUPORTE = '5500000000000'
-export const TELEFONE_SUPORTE = '(00) 00000-0000'
+/** WhatsApp do suporte técnico (DDI + DDD + número, só dígitos), vindo do ambiente. */
+const WHATSAPP_SUPORTE = (import.meta.env.VITE_WHATSAPP_SUPORTE ?? '').replace(/\D/g, '')
 
 /**
  * Link para abrir a conversa de suporte com uma mensagem pronta.
