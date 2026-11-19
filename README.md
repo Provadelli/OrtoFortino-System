@@ -15,7 +15,7 @@ Sistema de gestão para a **Orto Fortino — Órteses Funcionais**: cadastro de 
 ![Testes](https://img.shields.io/badge/testes%20unit%C3%A1rios-149%20passando-16A34A?style=flat-square)
 ![Licença](https://img.shields.io/badge/licen%C3%A7a-todos%20os%20direitos%20reservados-555555?style=flat-square)
 
-[Vídeo de apresentação](docs/video/apresentacao-orto-fortino.mp4) · [Arquitetura](docs/arquitetura.md) · [Segurança](SECURITY.md) · [Marca](docs/marca/README.md)
+[Acessar a plataforma](https://ortofortino.vercel.app) · [Vídeo de apresentação](docs/video/apresentacao-orto-fortino.mp4) · [Arquitetura](docs/arquitetura.md) · [Segurança](SECURITY.md) · [Marca](docs/marca/README.md)
 
 <br/>
 
