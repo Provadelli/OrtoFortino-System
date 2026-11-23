@@ -176,3 +176,39 @@ test('rascunho do cadastro volta ao retornar à tela', async ({ page }) => {
   await expect(page.getByText('Continuando de onde você parou.')).toBeVisible()
   await expect(page.getByLabel('Nome completo *')).toHaveValue('Davi Martins')
 })
+
+test('excluir paciente com histórico mostra o impacto e exige digitar o nome', async ({ page }) => {
+  await mockAuth(page, { loggedIn: true })
+  await mockDb(page)
+  let apagado = false
+  await page.route('**/rest/v1/atendimentos*', (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: 'a1', numero: 7, categoria: 'ortese', descricao: 'AFO', status: 'entregue', prazo_entrega: null, data_primeiro_contato: '2026-11-01',
+          data_conclusao: '2026-11-09', valor: '900.00', valor_pago: '900.00', pagamento_status: 'pago', fichas_tecnicas: [],
+        },
+      ],
+    }),
+  )
+  await page.route('**/rest/v1/pacientes*', (r) => {
+    if (r.request().method() === 'DELETE') {
+      apagado = true
+      return r.fulfill({ status: 204, body: '' })
+    }
+    return r.fulfill({ json: PACIENTE })
+  })
+  await page.goto(`/clientes/${PACIENTE.id}`)
+  await page.getByRole('button', { name: 'Excluir cadastro de Helena Ribeiro' }).click()
+  const dlg = page.getByRole('dialog', { name: 'Excluir Helena Ribeiro?' })
+  await expect(dlg).toContainText('1 atendimento')
+  const confirmar = dlg.getByRole('button', { name: 'Excluir definitivamente' })
+  await expect(confirmar).toBeDisabled()
+  await axe(page)
+  await dlg.getByLabel(/Para confirmar, digite/).fill('helena ribeiro')
+  await expect(confirmar).toBeEnabled()
+  await confirmar.click()
+  await expect(page).toHaveURL(/\/clientes$/)
+  await expect(page.getByText('Cadastro de Helena Ribeiro excluído.')).toBeVisible()
+  expect(apagado).toBe(true)
+})

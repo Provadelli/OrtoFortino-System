@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Atalhos } from '@/components/ui/Atalhos'
 import { Combobox } from '@/components/ui/Combobox'
@@ -331,13 +332,29 @@ function ItemEditor({ index: i, item, total, register, errors, onRemove }: ItemE
           <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-muted">
             {item.produto_id ? <span>{tipoInfo(item.tipo).label} da tabela</span> : <span>Item avulso</span>}
           </div>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="-my-2 -mr-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
-          >
-            <CloseIcon width={18} height={18} /> Remover<span className="sr-only"> {legenda}</span>
-          </button>
+          {item.descricao.trim() ? (
+            <ConfirmDialog
+              triggerLabel={
+                <>
+                  <CloseIcon width={18} height={18} /> Remover
+                </>
+              }
+              triggerAriaLabel={`Remover ${legenda}`}
+              triggerClassName="-my-2 -mr-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
+              title={`Remover “${legenda}”?`}
+              description="O item sai do orçamento e o total é recalculado. A mudança só vale depois de salvar."
+              confirmLabel="Remover item"
+              onConfirm={async () => onRemove()}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="-my-2 -mr-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
+            >
+              <CloseIcon width={18} height={18} /> Remover<span className="sr-only"> {legenda}</span>
+            </button>
+          )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Descrição *" autoComplete="off" error={e?.descricao?.message} {...register(`itens.${i}.descricao`)} />

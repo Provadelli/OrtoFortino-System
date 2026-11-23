@@ -108,7 +108,13 @@ export function useExcluirPaciente() {
       const { error } = await db().from('pacientes').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.all }),
+    // atendimentos e orçamentos do paciente vão junto (cascata no banco)
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.all }),
+        qc.invalidateQueries({ queryKey: ['atendimentos'] }),
+        qc.invalidateQueries({ queryKey: ['orcamentos'] }),
+      ]),
   })
 }
 

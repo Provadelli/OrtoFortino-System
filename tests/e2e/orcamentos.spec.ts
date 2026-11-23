@@ -217,9 +217,16 @@ test('orçamento aprovado fica travado e gera nova versão', async ({ page }) =>
   await page.goto(`/orcamentos/${ID}`)
   await expect(page.getByRole('heading', { level: 1, name: 'ORC-2026-0012' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Editar' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Excluir' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Ver atendimento' })).toHaveAttribute('href', `/atendimentos/${ATENDIMENTO_ID}`)
   await axe(page)
+
+  // aprovado também pode ser excluído, depois de confirmar
+  await page.getByRole('button', { name: 'Excluir orçamento ORC-2026-0012' }).click()
+  const dlgExcluir = page.getByRole('dialog', { name: 'Excluir o orçamento ORC-2026-0012?' })
+  await expect(dlgExcluir).toContainText('já foi aprovado')
+  await axe(page)
+  await dlgExcluir.getByRole('button', { name: 'Voltar' }).click()
+  await expect(dlgExcluir).toBeHidden()
 
   await page.getByRole('button', { name: 'Criar nova versão' }).click()
   await expect(page).toHaveURL(new RegExp(`/orcamentos/${ID_V2}$`))

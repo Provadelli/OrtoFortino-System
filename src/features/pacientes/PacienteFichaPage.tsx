@@ -1,15 +1,17 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { Button, buttonClass } from '@/components/ui/Button'
+import { buttonClass } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
 import { maskCpf } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
+import { useAtendimentosDoPaciente } from '@/features/atendimentos/api'
 import { HistoricoAtendimentos } from '@/features/atendimentos/HistoricoAtendimentos'
+import { useOrcamentosDoPaciente } from '@/features/orcamentos/api'
 import { HistoricoOrcamentos } from '@/features/orcamentos/HistoricoOrcamentos'
-import { isDbError } from '@/lib/supabase'
 import { useExcluirPaciente, usePaciente } from './api'
 import { origemLabel } from './schema'
 
@@ -176,62 +178,28 @@ function CpfReveal({ cpf }: { cpf: string }) {
 }
 
 function ExcluirPaciente({ id, nome }: { id: string; nome: string }) {
-  const dialog = useRef<HTMLDialogElement>(null)
   const excluir = useExcluirPaciente()
   const navigate = useNavigate()
-  const [erro, setErro] = useState<string | null>(null)
-
-  async function confirmar() {
-    setErro(null)
-    try {
-      await excluir.mutateAsync(id)
-      dialog.current?.close()
-      navigate('/clientes', { replace: true, state: { notice: `Cadastro de ${nome} excluído.` } })
-    } catch (err) {
-      setErro(
-        // 23503 (no action) ou 23001 (restrict): o paciente ainda é referenciado
-        isDbError(err) && (err.code === '23503' || err.code === '23001')
-          ? 'Este paciente tem atendimentos ou orçamentos registrados. Exclua-os antes de excluir o cadastro.'
-          : 'Não foi possível excluir agora. Tente de novo.',
-      )
-    }
-  }
+  // mesmas consultas do histórico da ficha: vêm do cache, sem pedido extra
+  const atendimentos = useAtendimentosDoPaciente(id).data?.length ?? 0
+  const orcamentos = useOrcamentosDoPaciente(id).data?.length ?? 0
+  const impact = [
+    atendimentos > 0 && `${atendimentos} ${atendimentos === 1 ? 'atendimento' : 'atendimentos'}, com ficha técnica e pagamentos`,
+    orcamentos > 0 && `${orcamentos} ${orcamentos === 1 ? 'orçamento' : 'orçamentos'}, inclusive aprovados`,
+  ].filter((x): x is string => !!x)
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => dialog.current?.showModal()}
-        className="inline-flex min-h-11 cursor-pointer items-center rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
-      >
-        Excluir cadastro
-      </button>
-      <dialog
-        ref={dialog}
-        aria-labelledby="dlg-excluir-titulo"
-        aria-describedby="dlg-excluir-texto"
-        className="m-auto w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-white p-6 text-ink shadow-2xl backdrop:bg-ink/40 open:animate-rise"
-      >
-        <h2 id="dlg-excluir-titulo" className="m-0 text-xl font-semibold">
-          Excluir {nome}?
-        </h2>
-        <p id="dlg-excluir-texto" className="mt-3 mb-0 text-[15px] text-ink-soft">
-          Os dados pessoais e os responsáveis serão apagados de forma definitiva (direito de eliminação — LGPD). Esta ação não pode ser desfeita.
-        </p>
-        {erro && (
-          <p role="alert" className="mt-3 mb-0 text-sm font-medium text-late-fg">
-            {erro}
-          </p>
-        )}
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button variant="ghost" onClick={() => dialog.current?.close()}>
-            Cancelar
-          </Button>
-          <Button variant="danger" loading={excluir.isPending} onClick={() => void confirmar()}>
-            Excluir definitivamente
-          </Button>
-        </div>
-      </dialog>
-    </>
+    <ConfirmDialog
+      triggerLabel="Excluir cadastro"
+      triggerAriaLabel={`Excluir cadastro de ${nome}`}
+      title={`Excluir ${nome}?`}
+      description={`Os dados pessoais e os responsáveis serão apagados de forma definitiva (direito de eliminação — LGPD). Esta ação não pode ser desfeita.${impact.length ? ' Junto com o cadastro serão apagados:' : ''}`}
+      impact={impact.length ? impact : undefined}
+      requireText={impact.length ? nome : undefined}
+      onConfirm={async () => {
+        await excluir.mutateAsync(id)
+        navigate('/clientes', { replace: true, state: { notice: `Cadastro de ${nome} excluído.` } })
+      }}
+    />
   )
 }

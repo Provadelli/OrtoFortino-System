@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams } from 'react-router'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AvisoRascunho } from '@/components/ui/AvisoRascunho'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
@@ -324,13 +325,19 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
             <li key={f.key} className="flex flex-col gap-4 rounded-field border border-line bg-surface p-4 animate-rise">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="m-0 text-base font-semibold">Responsável {i + 1}</h3>
-                <button
-                  type="button"
-                  onClick={() => remove(i)}
-                  className="-mr-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
-                >
-                  <CloseIcon width={18} height={18} /> Remover<span className="sr-only"> responsável {i + 1}</span>
-                </button>
+                <ConfirmDialog
+                  triggerLabel={
+                    <>
+                      <CloseIcon width={18} height={18} /> Remover
+                    </>
+                  }
+                  triggerAriaLabel={`Remover responsável ${i + 1}`}
+                  triggerClassName="-mr-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
+                  title={`Remover o responsável ${i + 1}?`}
+                  description="Os dados deste responsável saem do cadastro. A mudança só vale depois de salvar."
+                  confirmLabel="Remover responsável"
+                  onConfirm={async () => remove(i)}
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Nome *" autoComplete="off" error={errors.responsaveis?.[i]?.nome?.message} {...register(`responsaveis.${i}.nome`)} />

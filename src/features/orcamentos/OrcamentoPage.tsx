@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { ArrowLeftIcon } from '@/components/ui/icons'
 import { StatusChip } from '@/components/ui/StatusChip'
@@ -186,16 +187,14 @@ function OrcamentoView({ id }: { id?: string }) {
               )
             })}
           </ol>
-          {o.status !== 'aprovado' && o.status !== 'substituido' && (
-            <div className="mt-2 flex flex-wrap gap-2 border-t border-line-soft pt-3">
-              {editavel(o.status) && (
-                <Button variant="ghost" loading={mudar.isPending} onClick={() => void acao(() => mudar.mutateAsync({ id: o.id, status: 'recusado' }), 'Orçamento marcado como recusado.')}>
-                  Marcar como recusado
-                </Button>
-              )}
-              <Excluir o={o} />
-            </div>
-          )}
+          <div className="mt-2 flex flex-wrap gap-2 border-t border-line-soft pt-3">
+            {editavel(o.status) && (
+              <Button variant="ghost" loading={mudar.isPending} onClick={() => void acao(() => mudar.mutateAsync({ id: o.id, status: 'recusado' }), 'Orçamento marcado como recusado.')}>
+                Marcar como recusado
+              </Button>
+            )}
+            <Excluir o={o} />
+          </div>
         </Painel>
       </div>
     </>
@@ -362,58 +361,24 @@ function Aprovar({ o, onDone }: { o: Orcamento; onDone: (msg: string) => void })
 }
 
 function Excluir({ o }: { o: Orcamento }) {
-  const dialog = useRef<HTMLDialogElement>(null)
   const excluir = useExcluirOrcamento()
   const navigate = useNavigate()
-  const [erro, setErro] = useState<string | null>(null)
-
-  async function confirmar() {
-    setErro(null)
-    try {
-      await excluir.mutateAsync(o.id)
-      dialog.current?.close()
-      navigate('/orcamentos', { replace: true, state: { notice: `Orçamento ${o.numero} excluído.` } })
-    } catch {
-      setErro('Não foi possível excluir agora. Tente de novo.')
-    }
-  }
-
+  const travado = o.status === 'aprovado' || o.status === 'substituido'
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => dialog.current?.showModal()}
-        className="inline-flex min-h-11 cursor-pointer items-center rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
-      >
-        Excluir
-      </button>
-      <dialog
-        ref={dialog}
-        aria-labelledby="dlg-excluir-orc"
-        aria-describedby="dlg-excluir-orc-texto"
-        className="m-auto w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-white p-6 text-ink shadow-2xl backdrop:bg-ink/40 open:animate-rise"
-      >
-        <h2 id="dlg-excluir-orc" className="m-0 text-xl font-semibold">
-          Excluir o orçamento {o.numero}?
-        </h2>
-        <p id="dlg-excluir-orc-texto" className="mt-3 mb-0 text-[15px] text-ink-soft">
-          O orçamento e os itens dele serão apagados. Para guardar o registro, prefira “Marcar como recusado”.
-        </p>
-        {erro && (
-          <p role="alert" className="mt-3 mb-0 text-sm font-medium text-late-fg">
-            {erro}
-          </p>
-        )}
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button variant="ghost" onClick={() => dialog.current?.close()}>
-            Voltar
-          </Button>
-          <Button variant="danger" loading={excluir.isPending} onClick={() => void confirmar()}>
-            Excluir definitivamente
-          </Button>
-        </div>
-      </dialog>
-    </>
+    <ConfirmDialog
+      triggerLabel="Excluir"
+      triggerAriaLabel={`Excluir orçamento ${o.numero}`}
+      title={`Excluir o orçamento ${o.numero}?`}
+      description={
+        travado
+          ? 'Este orçamento já foi aprovado. Ele e os itens dele serão apagados de forma definitiva; o atendimento que ele gerou continua, sem o vínculo com o orçamento.'
+          : 'O orçamento e os itens dele serão apagados. Para guardar o registro, prefira “Marcar como recusado”.'
+      }
+      onConfirm={async () => {
+        await excluir.mutateAsync(o.id)
+        navigate('/orcamentos', { replace: true, state: { notice: `Orçamento ${o.numero} excluído.` } })
+      }}
+    />
   )
 }
 

@@ -1,9 +1,10 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { Button, buttonClass } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Field } from '@/components/ui/Field'
 import { Choice, ChoiceGroup, Section, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon } from '@/components/ui/icons'
@@ -250,9 +251,7 @@ function Situacao({ produto, onNotice }: { produto: ProdutoDetalhe; onNotice: (m
   const alternar = useAlternarAtivo()
   const excluir = useExcluirProduto()
   const navigate = useNavigate()
-  const dialog = useRef<HTMLDialogElement>(null)
   const [erro, setErro] = useState<string | null>(null)
-  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
 
   async function onAlternar() {
     setErro(null)
@@ -261,21 +260,6 @@ function Situacao({ produto, onNotice }: { produto: ProdutoDetalhe; onNotice: (m
       onNotice(produto.ativo ? 'Produto desativado. Ele não aparece mais para novos orçamentos.' : 'Produto reativado.')
     } catch {
       setErro('Não foi possível atualizar agora. Tente de novo.')
-    }
-  }
-
-  async function onExcluir() {
-    setErroExcluir(null)
-    try {
-      await excluir.mutateAsync(produto.id)
-      dialog.current?.close()
-      navigate('/tabela-de-precos', { replace: true, state: { notice: `“${produto.nome}” excluído da tabela.` } })
-    } catch (err) {
-      setErroExcluir(
-        isDbError(err) && (err.code === '23503' || err.code === '23001')
-          ? 'Este produto já foi usado em orçamentos e não pode ser excluído. Desative-o para tirá-lo da lista.'
-          : 'Não foi possível excluir agora. Tente de novo.',
-      )
     }
   }
 
@@ -294,40 +278,17 @@ function Situacao({ produto, onNotice }: { produto: ProdutoDetalhe; onNotice: (m
         <Button variant="outline" loading={alternar.isPending} onClick={() => void onAlternar()}>
           {produto.ativo ? 'Desativar produto' : 'Reativar produto'}
         </Button>
-        <button
-          type="button"
-          onClick={() => dialog.current?.showModal()}
-          className="inline-flex min-h-11 cursor-pointer items-center rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
-        >
-          Excluir
-        </button>
+        <ConfirmDialog
+          triggerLabel="Excluir"
+          triggerAriaLabel={`Excluir ${produto.nome}`}
+          title={`Excluir “${produto.nome}”?`}
+          description="O produto e o histórico de preços dele serão apagados. Orçamentos que já usaram este produto continuam com o nome e o preço de quando foram feitos. Para só tirá-lo da lista, prefira “Desativar produto”."
+          onConfirm={async () => {
+            await excluir.mutateAsync(produto.id)
+            navigate('/tabela-de-precos', { replace: true, state: { notice: `“${produto.nome}” excluído da tabela.` } })
+          }}
+        />
       </div>
-      <dialog
-        ref={dialog}
-        aria-labelledby="dlg-excluir-prod"
-        aria-describedby="dlg-excluir-prod-texto"
-        className="m-auto w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-white p-6 text-ink shadow-2xl backdrop:bg-ink/40 open:animate-rise"
-      >
-        <h2 id="dlg-excluir-prod" className="m-0 text-xl font-semibold">
-          Excluir “{produto.nome}”?
-        </h2>
-        <p id="dlg-excluir-prod-texto" className="mt-3 mb-0 text-[15px] text-ink-soft">
-          O produto e o histórico de preços dele serão apagados. Para só tirá-lo da lista, prefira “Desativar produto”.
-        </p>
-        {erroExcluir && (
-          <p role="alert" className="mt-3 mb-0 text-sm font-medium text-late-fg">
-            {erroExcluir}
-          </p>
-        )}
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button variant="ghost" onClick={() => dialog.current?.close()}>
-            Voltar
-          </Button>
-          <Button variant="danger" loading={excluir.isPending} onClick={() => void onExcluir()}>
-            Excluir definitivamente
-          </Button>
-        </div>
-      </dialog>
     </Section>
   )
 }

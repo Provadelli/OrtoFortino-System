@@ -140,14 +140,14 @@ test('editar mostra o histórico, avisa a mudança de preço e desativa', async 
   expect(db.chamadas()[0]).toEqual({ metodo: 'PATCH', corpo: { ativo: false } })
 })
 
-test('excluir produto em uso sugere desativar', async ({ page }) => {
+test('excluir produto: erro do banco aparece na caixa de confirmação', async ({ page }) => {
   await mockAuth(page, { loggedIn: true })
   await mockDb(page, { erroExcluir: true })
   await page.goto(`/tabela-de-precos/${AFO.id}`)
-  await page.getByRole('button', { name: 'Excluir', exact: true }).click()
+  await page.getByRole('button', { name: 'Excluir AFO articulada' }).click()
   await expect(page.getByRole('dialog', { name: 'Excluir “AFO articulada”?' })).toBeVisible()
   await page.getByRole('button', { name: 'Excluir definitivamente' }).click()
-  await expect(page.getByText(/já foi usado em orçamentos/)).toBeVisible()
+  await expect(page.getByRole('alert').filter({ hasText: /ainda é usado por outros dados/ })).toBeVisible()
 })
 
 test('importar planilha: prévia, erros por linha e importação', async ({ page }) => {

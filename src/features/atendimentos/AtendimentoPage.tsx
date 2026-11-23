@@ -1,6 +1,7 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Button, buttonClass } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ArrowLeftIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { Etapas } from '@/components/ui/Etapas'
@@ -246,7 +247,7 @@ export default function AtendimentoPage() {
               Reabrir atendimento
             </button>
           )}
-          <Excluir id={a.id} numero={a.numero} pacienteId={a.paciente_id} />
+          <Excluir id={a.id} numero={a.numero} pacienteId={a.paciente_id} status={a.status} />
         </div>
       </footer>
     </>
@@ -273,59 +274,21 @@ function Item({ label, children, className }: { label: string; children: ReactNo
   )
 }
 
-function Excluir({ id, numero, pacienteId }: { id: string; numero: number; pacienteId: string }) {
-  const dialog = useRef<HTMLDialogElement>(null)
+function Excluir({ id, numero, pacienteId, status }: { id: string; numero: number; pacienteId: string; status: string }) {
   const excluir = useExcluirAtendimento()
   const navigate = useNavigate()
-  const [erro, setErro] = useState<string | null>(null)
-
-  async function confirmar() {
-    setErro(null)
-    try {
-      await excluir.mutateAsync(id)
-      dialog.current?.close()
-      navigate(`/clientes/${pacienteId}`, { replace: true, state: { notice: `Atendimento nº ${numero} excluído.` } })
-    } catch {
-      setErro('Não foi possível excluir agora. Tente de novo.')
-    }
-  }
-
+  const concluido = status === 'entregue'
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => dialog.current?.showModal()}
-        className="inline-flex min-h-11 cursor-pointer items-center rounded-field px-3 text-sm font-semibold text-late-fg hover:bg-late-bg"
-      >
-        Excluir
-      </button>
-      <dialog
-        ref={dialog}
-        aria-labelledby="dlg-excluir-at"
-        aria-describedby="dlg-excluir-at-texto"
-        className="m-auto w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-white p-6 text-ink shadow-2xl backdrop:bg-ink/40 open:animate-rise"
-      >
-        <h2 id="dlg-excluir-at" className="m-0 text-xl font-semibold">
-          Excluir o atendimento nº {numero}?
-        </h2>
-        <p id="dlg-excluir-at-texto" className="mt-3 mb-0 text-[15px] text-ink-soft">
-          A ficha técnica e o registro de pagamento deste atendimento serão apagados. Para só encerrar, prefira “Cancelar atendimento”.
-        </p>
-        {erro && (
-          <p role="alert" className="mt-3 mb-0 text-sm font-medium text-late-fg">
-            {erro}
-          </p>
-        )}
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button variant="ghost" onClick={() => dialog.current?.close()}>
-            Voltar
-          </Button>
-          <Button variant="danger" loading={excluir.isPending} onClick={() => void confirmar()}>
-            Excluir definitivamente
-          </Button>
-        </div>
-      </dialog>
-    </>
+    <ConfirmDialog
+      triggerLabel="Excluir"
+      triggerAriaLabel={`Excluir atendimento nº ${numero}`}
+      title={`Excluir o atendimento nº ${numero}?`}
+      description={`${concluido ? 'Este atendimento já foi entregue. ' : ''}A ficha técnica e o registro de pagamento serão apagados de forma definitiva. Para só encerrar, prefira “Cancelar atendimento”.`}
+      onConfirm={async () => {
+        await excluir.mutateAsync(id)
+        navigate(`/clientes/${pacienteId}`, { replace: true, state: { notice: `Atendimento nº ${numero} excluído.` } })
+      }}
+    />
   )
 }
 
