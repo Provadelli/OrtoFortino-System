@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { db } from '@/lib/supabase'
-import { formatCep, formatCpf, formatPhone } from '@/lib/br'
+import { formatCep, formatCnpj, formatCpf, formatPhone } from '@/lib/br'
 import { toPayload, type PacienteForm } from './schema'
 
 export const PAGE_SIZE = 25
@@ -57,7 +57,9 @@ export type Paciente = NonNullable<ReturnType<typeof usePaciente>['data']>
 export function toForm(p: Paciente): PacienteForm {
   return {
     nome: p.nome,
+    tipo_documento: p.tipo_documento === 'cnpj' ? 'cnpj' : 'cpf',
     cpf: p.cpf ? formatCpf(p.cpf) : '',
+    cnpj: p.cnpj ? formatCnpj(p.cnpj) : '',
     data_nascimento: p.data_nascimento ?? '',
     telefone: p.telefone ? formatPhone(p.telefone) : '',
     cep: p.cep ? formatCep(p.cep) : '',
