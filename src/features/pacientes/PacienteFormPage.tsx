@@ -10,8 +10,9 @@ import { MapaSecoes } from '@/components/ui/MapaSecoes'
 import { Choice, ChoiceGroup, FieldError, Section, SelectField, TextareaField } from '@/components/ui/FormControls'
 import { ArrowLeftIcon, CloseIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
-import { ageFrom, formatAge, formatCep, formatCpf, formatIsoDate, formatPhone, onlyDigits, UFS } from '@/lib/br'
+import { ageFrom, formatAge, formatCep, formatCnpj, formatCpf, formatIsoDate, formatPhone, isValidCnpj, onlyDigits, UFS } from '@/lib/br'
 import { buscarCep, CepIndisponivel } from '@/lib/cep'
+import { buscarCnpj, CnpjIndisponivel } from '@/lib/cnpj'
 import { isDbError } from '@/lib/supabase'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRascunho } from '@/lib/rascunho'
@@ -135,6 +136,69 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
       })
     }
   }
+  // CNPJ → razão social e endereço (BrasilAPI). Só preenche o que está vazio; falha da API nunca bloqueia o cadastro.
+  const [cnpjStatus, setCnpjStatus] = useState<{ tipo: 'buscando' | 'ok' | 'erro'; texto: string } | null>(null)
+  const tipoDoc = useWatch({ control, name: 'tipo_documento' })
+  const cnpj = useWatch({ control, name: 'cnpj' })
+  const [cnpjInicial] = useState(initial.cnpj)
+  useEffect(() => {
+    const d = onlyDigits(cnpj)
+    if (tipoDoc !== 'cnpj' || d.length !== 14 || !isValidCnpj(d) || d === onlyDigits(cnpjInicial)) return
+    const ctrl = new AbortController()
+    void consultarCnpj(d, ctrl)
+    return () => ctrl.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consultarCnpj lê o formulário na hora; só o CNPJ dispara a consulta
+  }, [cnpj, tipoDoc, cnpjInicial])
+
+  async function consultarCnpj(d: string, ctrl: AbortController) {
+    await Promise.resolve()
+    if (ctrl.signal.aborted) return
+    setCnpjStatus({ tipo: 'buscando', texto: 'Buscando empresa…' })
+    try {
+      const r = await buscarCnpj(d, ctrl.signal)
+      if (ctrl.signal.aborted) return
+      if (!r) {
+        setCnpjStatus({ tipo: 'erro', texto: 'CNPJ não encontrado na Receita. Preencha os dados à mão.' })
+        return
+      }
+      const opts = { shouldDirty: true, shouldValidate: true }
+      const vazio = (campo: 'nome' | 'cep' | 'endereco' | 'cidade' | 'telefone') => getValues(campo).trim() === ''
+      const preenchidos: string[] = []
+      if (vazio('nome')) {
+        setValue('nome', r.razaoSocial, opts)
+        preenchidos.push('nome')
+      }
+      if (r.endereco && vazio('endereco')) {
+        setValue('endereco', r.endereco, opts)
+        preenchidos.push('endereço')
+      }
+      if (r.cidade && vazio('cidade')) {
+        setValue('cidade', r.cidade, opts)
+        if (r.uf) setValue('uf', r.uf, opts)
+        preenchidos.push('cidade')
+      }
+      if (r.cep && vazio('cep')) {
+        setValue('cep', formatCep(r.cep), opts)
+        preenchidos.push('CEP')
+      }
+      if (r.telefone && vazio('telefone')) {
+        setValue('telefone', formatPhone(r.telefone), opts)
+        preenchidos.push('telefone')
+      }
+      setCnpjStatus({
+        tipo: 'ok',
+        texto: preenchidos.length
+          ? `Empresa encontrada. Preenchido: ${preenchidos.join(', ')}. Confira os dados.`
+          : `Empresa encontrada: ${r.razaoSocial}. Os campos já preenchidos foram mantidos.`,
+      })
+    } catch (e) {
+      if (ctrl.signal.aborted) return
+      setCnpjStatus({
+        tipo: 'erro',
+        texto: e instanceof CnpjIndisponivel ? 'Não foi possível consultar o CNPJ agora. Preencha os dados à mão.' : 'Não foi possível consultar o CNPJ.',
+      })
+    }
+  }
   const rascunho = useRascunho(form, `paciente:${id ?? 'novo'}`, initial, base)
   const { fields, append, remove } = useFieldArray({ control, name: 'responsaveis', keyName: 'key' })
   const [origem, nascimento, responsaveis, nome, cidade, origemNome, consentimento] = useWatch({
@@ -225,17 +289,41 @@ function PacienteFormInner({ id, initial, consentEm, base }: { id?: string; init
       <Section id="sec-dados" title="Dados do paciente">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Nome completo *" autoComplete="off" error={errors.nome?.message} {...register('nome')} />
+            <Field label={tipoDoc === 'cnpj' ? 'Razão social / nome *' : 'Nome completo *'} autoComplete="off" error={errors.nome?.message} {...register('nome')} />
           </div>
-          <Field
-            label="CPF"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="000.000.000-00"
-            hint="Opcional para crianças sem CPF."
-            error={errors.cpf?.message}
-            {...masked(register('cpf'), formatCpf)}
-          />
+          <ChoiceGroup legend="Documento">
+            <Choice label="CPF" value="cpf" {...register('tipo_documento', { onChange: () => setCnpjStatus(null) })} />
+            <Choice label="CNPJ" value="cnpj" {...register('tipo_documento', { onChange: () => setCnpjStatus(null) })} />
+          </ChoiceGroup>
+          {tipoDoc === 'cnpj' ? (
+            <Field
+              label="CNPJ"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="00.000.000/0000-00"
+              error={errors.cnpj?.message}
+              hint={
+                cnpjStatus ? (
+                  <span role="status" className={cnpjStatus.tipo === 'erro' ? 'font-medium text-late-fg' : cnpjStatus.tipo === 'ok' ? 'text-prod-fg' : undefined}>
+                    {cnpjStatus.texto}
+                  </span>
+                ) : (
+                  'Ao completar o CNPJ, o nome e o endereço da empresa são preenchidos.'
+                )
+              }
+              {...masked(register('cnpj'), formatCnpj)}
+            />
+          ) : (
+            <Field
+              label="CPF"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="000.000.000-00"
+              hint="Opcional para crianças sem CPF."
+              error={errors.cpf?.message}
+              {...masked(register('cpf'), formatCpf)}
+            />
+          )}
           <Field
             label="Data de nascimento"
             type="date"

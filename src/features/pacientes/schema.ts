@@ -1,5 +1,5 @@
 import * as z from 'zod/mini'
-import { isValidCpf, onlyDigits } from '@/lib/br'
+import { isValidCnpj, isValidCpf, onlyDigits } from '@/lib/br'
 
 export const ORIGENS = [
   { value: 'particular', label: 'Particular' },
@@ -14,6 +14,9 @@ const opcional = (max: number, msg = `Use no máximo ${max} caracteres.`) => z.s
 
 const cpfOpcional = z.string().check(
   z.refine((v) => v.trim() === '' || isValidCpf(v), 'CPF inválido. Confira os 11 números.'),
+)
+const cnpjOpcional = z.string().check(
+  z.refine((v) => v.trim() === '' || isValidCnpj(v), 'CNPJ inválido. Confira os 14 números.'),
 )
 const telefoneOpcional = z.string().check(
   z.refine((v) => {
@@ -34,7 +37,9 @@ export const responsavelSchema = z.object({
 export const pacienteSchema = z
   .object({
     nome: z.string().check(z.trim(), z.minLength(2, 'Informe o nome completo do paciente.'), z.maxLength(160)),
+    tipo_documento: z.enum(['cpf', 'cnpj']),
     cpf: cpfOpcional,
+    cnpj: cnpjOpcional,
     data_nascimento: z.string().check(
       z.refine((v) => v === '' || (v >= '1900-01-01' && v <= new Date().toISOString().slice(0, 10)), 'Data de nascimento inválida.'),
     ),
@@ -63,7 +68,9 @@ export type ResponsavelForm = z.infer<typeof responsavelSchema>
 
 export const pacienteVazio: PacienteForm = {
   nome: '',
+  tipo_documento: 'cpf',
   cpf: '',
+  cnpj: '',
   data_nascimento: '',
   telefone: '',
   cep: '',
@@ -79,13 +86,15 @@ export const pacienteVazio: PacienteForm = {
   responsaveis: [],
 }
 
-/** Formulário → payload do banco (só dígitos em CPF/telefone). */
+/** Formulário → payload do banco (só dígitos em CPF/CNPJ/telefone). */
 export function toPayload(v: PacienteForm) {
   const { responsaveis, ...dados } = v
   return {
     dados: {
       ...dados,
-      cpf: onlyDigits(dados.cpf),
+      // só o documento do tipo escolhido é gravado (o banco exige coerência)
+      cpf: dados.tipo_documento === 'cpf' ? onlyDigits(dados.cpf) : '',
+      cnpj: dados.tipo_documento === 'cnpj' ? onlyDigits(dados.cnpj) : '',
       telefone: onlyDigits(dados.telefone),
       cep: onlyDigits(dados.cep),
       origem_nome: dados.origem === 'particular' ? '' : dados.origem_nome,

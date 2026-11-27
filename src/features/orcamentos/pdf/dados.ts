@@ -1,4 +1,4 @@
-import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
+import { ageFrom, formatAge, formatCep, formatCnpj, formatCpf, formatIsoDate, formatPhone, onlyDigits } from '@/lib/br'
 import { EMPRESA_PADRAO, emitente, rodapeEmpresa, type Empresa } from '@/lib/empresa'
 import { formatBRL } from '@/lib/format'
 import { agruparSecoes } from '../calc'
@@ -21,9 +21,15 @@ export type OrcamentoParaPdf = {
   observacoes: string | null
   pacientes: {
     nome: string
+    tipo_documento?: string | null
     cpf?: string | null
+    cnpj?: string | null
     data_nascimento: string | null
     telefone: string | null
+    cep?: string | null
+    endereco?: string | null
+    cidade?: string | null
+    uf?: string | null
     responsaveis?: { nome: string; cpf: string | null; telefone: string | null; parentesco: string | null; principal: boolean }[] | null
   } | null
   orcamento_itens: { secao: string | null; descricao: string; detalhe: string | null; quantidade: number; unidade: string; preco_unitario: number; total: number }[]
@@ -36,6 +42,14 @@ const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits:
 export function nomeArquivoPdf(numero: string, paciente: string | undefined) {
   const nome = (paciente ?? '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim()
   return `${numero}${nome ? ` - ${nome}` : ''}.pdf`
+}
+
+/** "Rua X, 10 - Centro · Niterói/RJ · CEP 24.000-000" (partes vazias são omitidas). */
+export function enderecoPdf(p: { cep?: string | null; endereco?: string | null; cidade?: string | null; uf?: string | null }) {
+  const cidadeUf = [p.cidade?.trim(), p.uf?.trim()].filter(Boolean).join('/')
+  const cep = p.cep && onlyDigits(p.cep).length === 8 ? `CEP ${formatCep(p.cep)}` : ''
+  const partes = [p.endereco?.trim(), cidadeUf, cep].filter(Boolean)
+  return partes.length ? partes.join(' · ') : null
 }
 
 /** Converte o orçamento no conteúdo pronto do PDF (textos já formatados). */
@@ -82,8 +96,9 @@ export function dadosPdf(o: OrcamentoParaPdf, hoje = new Date(), empresa: Empres
       ? {
           nome: p.nome,
           idade: p.data_nascimento ? `${formatAge(idade)} (nasc. ${formatIsoDate(p.data_nascimento)})` : null,
-          cpf: p.cpf ? formatCpf(p.cpf) : null,
+          documento: p.tipo_documento === 'cnpj' ? (p.cnpj ? `CNPJ ${formatCnpj(p.cnpj)}` : null) : p.cpf ? `CPF ${formatCpf(p.cpf)}` : null,
           telefone: p.telefone ? formatPhone(p.telefone) : null,
+          endereco: enderecoPdf(p),
         }
       : null,
     responsavel: resp

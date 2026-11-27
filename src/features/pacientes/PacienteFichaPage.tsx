@@ -5,8 +5,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from '@/components/ui/icons'
 import { PageSkeleton } from '@/components/layout/PageSkeleton'
 import { StatusChip } from '@/components/ui/StatusChip'
-import { ageFrom, formatAge, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
-import { maskCpf } from '@/lib/format'
+import { ageFrom, formatAge, formatCnpj, formatCpf, formatIsoDate, formatPhone } from '@/lib/br'
+import { maskCnpj, maskCpf } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useAtendimentosDoPaciente } from '@/features/atendimentos/api'
 import { HistoricoAtendimentos } from '@/features/atendimentos/HistoricoAtendimentos'
@@ -73,7 +73,11 @@ export default function PacienteFichaPage() {
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Card title="Dados pessoais" id="c-dados">
           <dl className="m-0 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            <Item label="CPF">{p.cpf ? <CpfReveal cpf={p.cpf} /> : '—'}</Item>
+            {p.tipo_documento === 'cnpj' ? (
+              <Item label="CNPJ">{p.cnpj ? <CpfReveal cpf={p.cnpj} tipo="cnpj" /> : '—'}</Item>
+            ) : (
+              <Item label="CPF">{p.cpf ? <CpfReveal cpf={p.cpf} /> : '—'}</Item>
+            )}
             <Item label="Nascimento">{p.data_nascimento ? `${formatIsoDate(p.data_nascimento)} (${formatAge(idade)})` : '—'}</Item>
             <Item label="Telefone">{p.telefone ? <a href={`tel:+55${p.telefone}`} className="text-primary-ink">{formatPhone(p.telefone)}</a> : '—'}</Item>
             <Item label="Cidade">{p.cidade ? `${p.cidade}${p.uf ? `/${p.uf}` : ''}` : '—'}</Item>
@@ -158,17 +162,18 @@ function Item({ label, children, className = '' }: { label: string; children: Re
   )
 }
 
-/** CPF mascarado por padrão (LGPD); revela sob demanda. */
-function CpfReveal({ cpf }: { cpf: string }) {
+/** CPF/CNPJ mascarado por padrão (LGPD); revela sob demanda. */
+function CpfReveal({ cpf, tipo = 'cpf' }: { cpf: string; tipo?: 'cpf' | 'cnpj' }) {
+  const rotulo = tipo === 'cnpj' ? 'CNPJ' : 'CPF'
   const [show, setShow] = useState(false)
   return (
     <span className="inline-flex items-center gap-1">
-      <span className="tabular-nums">{show ? formatCpf(cpf) : maskCpf(cpf)}</span>
+      <span className="tabular-nums">{show ? (tipo === 'cnpj' ? formatCnpj(cpf) : formatCpf(cpf)) : tipo === 'cnpj' ? maskCnpj(cpf) : maskCpf(cpf)}</span>
       <button
         type="button"
         onClick={() => setShow((v) => !v)}
         aria-pressed={show}
-        aria-label={show ? 'Ocultar CPF' : 'Mostrar CPF completo'}
+        aria-label={show ? `Ocultar ${rotulo}` : `Mostrar ${rotulo} completo`}
         className="-my-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-[10px] text-muted hover:bg-surface-hover hover:text-ink"
       >
         {show ? <EyeOffIcon width={18} height={18} /> : <EyeIcon width={18} height={18} />}

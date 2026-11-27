@@ -39,7 +39,7 @@ describe('dados do PDF do orçamento', () => {
     const d = dadosPdf(base, HOJE)
     expect(d.emissao).toBe('10/11/2026')
     expect(d.validade).toBe('25/11/2026')
-    expect(d.paciente).toMatchObject({ nome: 'Helena Ribeiro', cpf: '529.982.247-25', telefone: '(21) 96497-3837', idade: '8 anos (nasc. 10/05/2018)' })
+    expect(d.paciente).toMatchObject({ nome: 'Helena Ribeiro', documento: 'CPF 529.982.247-25', telefone: '(21) 96497-3837', idade: '8 anos (nasc. 10/05/2018)' })
     expect(d.total).toMatch(/^R\$\s1\.197,00$/)
     expect(d.desconto?.rotulo).toBe('Desconto (10%)')
     expect(d.desconto?.valor).toMatch(/^− R\$\s133,00$/)
@@ -76,5 +76,19 @@ describe('dados do PDF do orçamento', () => {
   it('nome do arquivo sem caracteres proibidos', () => {
     expect(nomeArquivoPdf('ORC-2026-0012', 'Ana / Maria: "teste"')).toBe('ORC-2026-0012 - Ana Maria teste.pdf')
     expect(nomeArquivoPdf('ORC-2026-0012-v2', undefined)).toBe('ORC-2026-0012-v2.pdf')
+  })
+})
+
+describe('endereço e CNPJ no PDF', () => {
+  it('monta o endereço do cliente, omitindo partes vazias', () => {
+    const d = dadosPdf({ ...base, pacientes: { ...base.pacientes!, endereco: 'Rua A, 10 - Centro', cidade: 'Niterói', uf: 'RJ', cep: '24020000' } }, HOJE)
+    expect(d.paciente?.endereco).toBe('Rua A, 10 - Centro · Niterói/RJ · CEP 24.020-000')
+    expect(dadosPdf({ ...base, pacientes: { ...base.pacientes!, cidade: 'Niterói' } }, HOJE).paciente?.endereco).toBe('Niterói')
+    expect(dadosPdf(base, HOJE).paciente?.endereco).toBeNull()
+  })
+
+  it('cliente PJ sai com CNPJ no lugar do CPF', () => {
+    const d = dadosPdf({ ...base, pacientes: { ...base.pacientes!, tipo_documento: 'cnpj', cnpj: '34130423000148', cpf: null } }, HOJE)
+    expect(d.paciente?.documento).toBe('CNPJ 34.130.423/0001-48')
   })
 })

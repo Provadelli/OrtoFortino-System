@@ -108,8 +108,9 @@ export function OrcamentoPdf({ d }: { d: DadosPdf }) {
               <Text style={s.rotulo}>PACIENTE</Text>
               <Text style={s.nome}>{d.paciente.nome}</Text>
               {d.paciente.idade && <Text style={s.info}>{d.paciente.idade}</Text>}
-              {d.paciente.cpf && <Text style={s.info}>CPF {d.paciente.cpf}</Text>}
+              {d.paciente.documento && <Text style={s.info}>{d.paciente.documento}</Text>}
               {d.paciente.telefone && <Text style={s.info}>{d.paciente.telefone}</Text>}
+              {d.paciente.endereco && <Text style={s.info}>{d.paciente.endereco}</Text>}
             </View>
           )}
           {d.responsavel && (

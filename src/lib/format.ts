@@ -27,6 +27,13 @@ export function maskCpf(cpf: string) {
   return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`
 }
 
+/** Mascara CNPJ para listagens (LGPD): **.456.789/0001-** */
+export function maskCnpj(cnpj: string) {
+  const d = cnpj.replace(/\D/g, '')
+  if (d.length !== 14) return '**.***.***/****-**'
+  return `**.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-**`
+}
+
 /** Iniciais para avatar: "Polyana S." → "PS" */
 export function initials(name: string) {
   return name
